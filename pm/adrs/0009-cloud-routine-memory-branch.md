@@ -1,8 +1,12 @@
 # 0009 — Cloud routine persists memory to default branch hourly
 
-- **Status:** Accepted
+- **Status:** Superseded by 0010
 - **Date:** 2026-05-24
-- **Related:** PRD v1-instruction-pack, routine 00-wake-up, routine 60-log-and-persist
+- **Superseded:** 2026-05-24 — single hourly routine replaced by four
+  phase-specific Claude cloud routines (research-window, trade-window,
+  daily-close, overnight-watch). The memory-branch and idempotency contract
+  is preserved by ADR 0010; only the schedule shape changed.
+- **Related:** PRD v1-instruction-pack, ADR 0010, ADR 0011
 
 ## Context
 

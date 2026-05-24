@@ -1,8 +1,52 @@
 # Plan — v1 Instruction Pack
 
-- **Status:** Approved (not yet implemented)
+- **Status:** v1.1 shipped 2026-05-24
 - **Date:** 2026-05-24
 - **PRD:** [../prds/v1-instruction-pack.md](../prds/v1-instruction-pack.md)
+
+## v1.1 — refactor summary (2026-05-24)
+
+The original v1 plan below described a single hourly routine with 10 numbered
+playbook files that mixed scheduling and capability concerns. v1.1 replaces
+that with a **skills/routines split** (ADR 0011) and a **four-routine 24/7
+schedule with US weighting** (ADR 0010, supersedes ADR 0009).
+
+### What changed
+
+- **Routines** (`routines/*.md`) shrunk to thin orchestrators that declare
+  their cron in YAML frontmatter and invoke skills in order. Five files:
+  - `research-window.md` — 12:00 UTC / 07:00 ET
+  - `trade-window.md` — 18:00 UTC / 13:00 ET
+  - `daily-close.md` — 22:00 UTC / 17:00 ET (Sundays: + weekly recap)
+  - `overnight-watch.md` — 04:00 UTC / 23:00 ET (light monitor)
+  - `circuit-breaker.md` — reactive, documents the halt protocol
+- **Skills** (`skills/<name>/SKILL.md`) carry all capability logic.
+  Eleven skills total (including the existing `skills/polymarket/` submodule):
+  `boot`, `research`, `markets`, `sizing`, `trade`, `journal`, `persist`,
+  `notify`, `risk`, `recap`, `reflect`.
+- **Recaps** as derived markdown files in `recaps/` (ADR 0012), daily +
+  weekly on Sundays.
+- **Conventional Commits** for every agent commit, with `[cycle <cycle_id>]`
+  suffix (ADR 0013).
+- Wallet-secret constraint sharpened: only `skills/trade/SKILL.md` may read
+  `WALLET_SEED`.
+
+### What is preserved verbatim
+
+- Memory branch contract (default branch, unrestricted pushes, pull-rebase,
+  no force).
+- Risk math (5% cap, 10%/24h breaker, correlation guard).
+- Mainnet fail-closed preconditions and pre-submit idempotency push.
+- ADR 0001–0008 (markdown-only, submodule, paper default, env-var no-config,
+  reflection-strategy-only, research cap 3, snapshot every edit, paper
+  Telegram suppression).
+- 48h observation window (paper, forecast-only).
+- $54 USDC seed.
+
+The v1.0 plan body below is preserved as historical reference; treat ADRs
+0010–0013 as authoritative where they conflict.
+
+---
 
 ## TL;DR
 

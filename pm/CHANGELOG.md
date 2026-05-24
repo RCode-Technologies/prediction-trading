@@ -5,6 +5,46 @@ Versioning is loose semver-ish: `v0.x` until first mainnet trade, then `v1.0`.
 
 ## [Unreleased]
 
+## [v0.2.0] — 2026-05-24
+
+### Changed — Instruction Pack v1.1 (skills/routines split + 24/7 schedule)
+
+- **Routines split from skills.** `routines/` now holds 5 thin scheduled
+  playbooks; capability logic moved to 10 new `skills/<name>/SKILL.md` files
+  (ADR 0011).
+- **Schedule rebuilt for 24/7 + US weighting.** Four scheduled routines
+  (`research-window` 12 UTC, `trade-window` 18 UTC, `daily-close` 22 UTC,
+  `overnight-watch` 04 UTC) plus reactive `circuit-breaker`. Supersedes
+  single hourly routine from v0.1.0 (ADR 0010 supersedes ADR 0009).
+- **Each routine declares its cron** in YAML frontmatter at top of file.
+- **Phase-miss detection.** Each routine grep-checks for the prior
+  `phase_completed` event; missed phases logged + surfaced in the daily
+  recap and Telegram summary.
+- **Recaps as derived markdown files** in `recaps/`. Daily file every
+  end-of-day; weekly file on Sundays using ISO week (ADR 0012).
+- **Conventional Commits** for every agent commit with `[cycle <cycle_id>]`
+  suffix (ADR 0013).
+- **Wallet-secret constraint sharpened:** only `skills/trade/SKILL.md` may
+  read `WALLET_SEED`.
+
+### Added
+
+- ADR 0010 — four phase routines, 24/7 US-weighted (supersedes 0009).
+- ADR 0011 — skills vs routines split.
+- ADR 0012 — daily + weekly recaps as derived markdown files.
+- ADR 0013 — Conventional Commits.
+- 10 skills under `skills/`: boot, research, markets, sizing, trade,
+  journal, persist, notify, risk, recap, reflect.
+- 5 routines under `routines/`: research-window, trade-window, daily-close,
+  overnight-watch, circuit-breaker.
+- `recaps/` directory (initially empty; populated by `daily-close`).
+
+### Removed
+
+- Old `routines/00-wake-up.md` through `routines/99-circuit-breaker.md`
+  (10 files). Logic redistributed into skills + new routines. Preserved in
+  git history.
+
 ## [v0.1.0] — 2026-05-24
 
 ### Added — Instruction Pack v1

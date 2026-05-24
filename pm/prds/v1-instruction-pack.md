@@ -1,9 +1,18 @@
 # PRD — v1 Instruction Pack
 
-- **Status:** Approved (planning)
+- **Status:** Approved (v1.1 revision shipped 2026-05-24)
 - **Date:** 2026-05-24
 - **Owner:** Theo
 - **Related plan:** [../plans/v1-instruction-pack.md](../plans/v1-instruction-pack.md)
+
+## Revision history
+
+- **v1.1 — 2026-05-24:** Skills/Routines split (ADR 0011). Four phase-specific
+  Claude cloud routines on a 24/7 US-weighted schedule (ADR 0010, supersedes
+  ADR 0009). Daily and weekly recaps as derived markdown files in `recaps/`
+  (ADR 0012). Conventional Commits for all agent commits (ADR 0013).
+- **v1.0 — 2026-05-24:** Initial shipped instruction pack (single hourly
+  routine, 10 numbered routine files combining schedule + capability).
 
 ## Problem
 
@@ -63,27 +72,31 @@ hard risk limits — all without ever exceeding a tight token budget per cycle.
 
 ## Acceptance Criteria
 
-1. Repo skeleton exists with `CLAUDE.md`, `AGENTS.md`, `routines/`, `config/`,
-   `state/`, `strategy/`, `research/`, and `skills/polymarket/` (git submodule of
-   `Polymarket/agent-skills`).
+1. Repo skeleton exists with `CLAUDE.md`, `AGENTS.md`, `routines/`, `skills/`,
+   `config/`, `state/`, `strategy/`, `research/`, `recaps/`, and
+   `skills/polymarket/` (git submodule of `Polymarket/agent-skills`).
 2. `CLAUDE.md` contains exactly one concise instruction to read `AGENTS.md`.
    Cold-launching any compatible coding agent at the repo root with no extra prompt
    produces a coherent "what am I, what do I do next" answer from `AGENTS.md`.
-3. The Claude cloud routine setup is documented in `README.md`: schedule is hourly,
-   the selected repo has unrestricted branch pushes enabled for the memory branch,
-   required/optional environment variables are configured in the cloud environment,
-   allowed network domains are listed, and unnecessary connectors are excluded.
-4. A paper-mode dry-run cycle (no API keys, fake portfolio) produces: a research note,
-   a candidate-market ranking, prediction log entries during the first 48h observation
-   window, paper-fill log entries only after observation ends, a stubbed Telegram
-   payload, and a clean git commit + push. It performs zero non-git network writes.
-5. Seeding 5 fake paper trades and triggering `routines/80-reflect.md` modifies
-   `strategy/current.md` and writes a snapshot into `strategy/history/`.
+3. **Four** Claude cloud routines are documented in `README.md` (one per scheduled
+   `routines/*.md` file), each with the cron from the routine's YAML frontmatter.
+   The selected repo has unrestricted branch pushes enabled for the memory branch,
+   required/optional environment variables are configured in the cloud environment
+   (shared across all four), allowed network domains are listed, and unnecessary
+   connectors are excluded.
+4. A paper-mode dry-run of `routines/research-window.md` (no API keys, fake portfolio)
+   produces: a research note, a watchlist, `forecast` events during the first 48h
+   observation window (no paper fills), a `phase_completed` event, a stubbed Telegram
+   payload (or none if no keys), and a clean git commit + push. It performs zero
+   non-git network writes.
+5. Seeding 5 fake paper trades and invoking `skills/reflect` (via a `daily-close`
+   cycle) modifies `strategy/current.md` and writes a snapshot into `strategy/history/`.
 6. `grep -E "5%|10%"` finds each guardrail in ≥2 places (`AGENTS.md`,
-   `config/guardrails.md`, relevant routines).
-7. `grep -ri "private_key|signer|createAndPostOrder" routines/` returns hits only
-   inside `50-execute-trade.md`'s mainnet branch.
-8. `wc -l AGENTS.md` < 200; total always-loaded boot context < ~600 lines.
+   `config/guardrails.md`, relevant skills).
+7. `grep -ri "private_key|signer|createAndPostOrder|WALLET_SEED" skills/ routines/`
+   returns wallet-secret hits only inside `skills/trade/SKILL.md`.
+8. `wc -l AGENTS.md` < 200; total always-loaded boot context (AGENTS.md + 7 boot
+   files) < ~600 lines.
 9. `README.md` enumerates every env var the human must configure in the Claude cloud
    environment for routines, or `export` locally for manual dry runs — split by mode:
    - **Paper** (optional): `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`.
@@ -103,6 +116,15 @@ hard risk limits — all without ever exceeding a tight token budget per cycle.
     `WALLET_SEED` and `POLYMARKET_FUNDER_ADDRESS` are present, Telegram notification
     credentials are present, wallet/API/allowance checks pass, market prices are fresh,
     and all guardrail formulas pass.
+13. Every routine file declares its cron in YAML frontmatter at the top (ADR 0010);
+    `circuit-breaker.md` declares `cron: null` and documents that it is reactive.
+14. Skills sit under `skills/<name>/SKILL.md` with the same frontmatter pattern as
+    `skills/polymarket/SKILL.md`. Routines invoke skills by name; no routine
+    contains API mechanics inline (ADR 0011).
+15. Daily and weekly recaps land as markdown files under `recaps/` and emit a
+    `recap` event in the trade log (ADR 0012).
+16. Every agent commit follows Conventional Commits with a trailing
+    `[cycle <cycle_id>]` (ADR 0013).
 
 ## Out-of-Scope / Deferred
 
