@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "network": "paper",
+  "cadence_minutes": 60,
+  "observation_only": true,
+  "observation_started_at": "2026-05-24T00:00:00Z",
+  "observation_hours": 48,
+  "mainnet_attestation": {
+    "polymarket_eligible": false,
+    "attested_by": null,
+    "attested_at": null
+  }
+}

@@ -5,14 +5,35 @@ Versioning is loose semver-ish: `v0.x` until first mainnet trade, then `v1.0`.
 
 ## [Unreleased]
 
-### Planned — v0.1.0 (Instruction Pack v1)
+## [v0.1.0] — 2026-05-24
 
-- See [pm/prds/v1-instruction-pack.md](prds/v1-instruction-pack.md) and
-  [pm/plans/v1-instruction-pack.md](plans/v1-instruction-pack.md).
-- Revised v1 planning for Claude Code cloud routines: hourly cadence, `CLAUDE.md`
-  shim + model-agnostic `AGENTS.md`, default-branch memory persistence, repo-backed
-  lock/idempotency, explicit state schemas, risk formulas, cloud environment/network
-  setup, mainnet preflights, and `WALLET_SEED` as the only wallet secret env var.
+### Added — Instruction Pack v1
+
+- `CLAUDE.md` one-line shim → `AGENTS.md` (89-line model-agnostic boot prompt).
+- `routines/` 00–99 playbooks: wake-up, load-state, research, analyze-markets,
+  decide-and-size, execute-trade (paper + mainnet branches), log-and-persist,
+  notify-telegram, reflect, circuit-breaker. All under 150 lines each.
+- `config/guardrails.md` (canonical 5% per-position, 10%/24h halt, correlation,
+  research cap, append-only log) and `config/mode.json` (paper default,
+  observation_only true, hourly cadence, mainnet attestation gate).
+- Seeded `state/`: `portfolio.json` ($54 USDC), `halts.json`, `lock.json`,
+  `cycle-index.json`, empty `trade-log.jsonl`.
+- `strategy/current.md` v0 baseline (agent-owned), `strategy/history/`.
+- `research/INDEX.md` skeleton.
+- `skills/polymarket/` git submodule → `Polymarket/agent-skills`.
+- Human-facing `README.md`: cloud routine setup, env vars by mode, paper→mainnet
+  promotion, pause protocol, log-reading recipes.
+
+### Verification
+
+- Boot context (AGENTS.md + 7 boot files) = 258 lines (< 600 cap).
+- `wc -l AGENTS.md` = 89 (< 200 cap).
+- `jq empty` validates all seeded JSON.
+- `grep -ri "private_key\|signer\|createAndPostOrder\|WALLET_SEED" routines/`
+  returns hits only in `routines/50-execute-trade.md`.
+- `grep -ri "TODO" routines/` returns zero.
+- 5%/10% guardrails appear in AGENTS.md, config/guardrails.md, and relevant
+  routines (≥2 places each).
 
 ## [v0.0.2] — 2026-05-24
 
