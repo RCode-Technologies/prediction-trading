@@ -1,147 +1,90 @@
 ---
 name: persist
-description: Atomic JSON writes, JSON/JSONL validation, lock release, git identity setup, git commit + pull/rebase + push. Single canonical writer for state transitions and the only path to the memory branch. **A cycle that does not successfully push is not successful** — push failures halt the cycle and trigger a notification.
+description: End-of-cycle bookkeeping. Atomic writes, validation, lock release, git commit + pull/rebase + push. **A cycle that does not push is unsuccessful.**
 inputs: pending changes in working tree, cycle_id
-outputs: HEAD SHA pushed to memory branch, lock released, cycle_end event
+outputs: HEAD SHA pushed, lock released, cycle_end event
 ---
 
 # Persist
 
-End-of-cycle bookkeeping. Validates state, releases the lock, commits and
-pushes the memory branch. Also invoked mid-cycle by the `trade` skill for
-the mainnet pre-submit push.
+Push is the **only** success criterion. Verify `HEAD == origin/<branch>` and write SHA to `cycle-index.json.last_pushed_commit`.
 
-## Push is the success criterion
-
-The cycle is **only successful** when `git push` lands on the memory
-branch. A green Claude routine status that did not push is a failure.
-This skill must verify the push succeeded and write the resulting commit
-SHA to `cycle-index.json.last_pushed_commit` before exiting.
-
-## Git identity setup (idempotent — run on every cycle)
-
-Before any commit, ensure git knows who is committing. Run unconditionally
-— it's a no-op if already set:
+## Git identity (idempotent — every cycle)
 
 ```bash
 git config --global user.email "${GIT_AUTHOR_EMAIL:-agent@prediction-trading.local}"
 git config --global user.name  "${GIT_AUTHOR_NAME:-Polymarket Trading Agent}"
 ```
 
-The Claude Code cloud routine injects a working git identity automatically
-when the GitHub integration is enabled, but this fallback guarantees the
-cycle does not abort on `please tell me who you are` when the env is
-under-provisioned (e.g. a local manual dry run).
-
-## Push permission preflight
-
-Before the first commit of the cycle, sanity-check push permission:
+## Push preflight (before first commit)
 
 ```bash
 git push --dry-run 2>&1 | head -5
 ```
 
-If the dry-run output indicates auth failure (`Permission denied`,
-`fatal: could not read Username`, `403`, `remote: Repository moved`), the
-cycle cannot persist. Halt early via `skills/circuit-breaker.halt(
-"push_permission_missing")`. Better to fail fast than do work that will
-be lost.
+Auth failure (`Permission denied`, `could not read Username`, `403`, `Repository moved`) → `circuit-breaker.halt("push_permission_missing")`. Fail fast.
 
 ## Atomic write rule
 
-Every JSON write goes through temp + `mv`:
+JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` only; never edit prior lines.
 
-```bash
-jq '<expr>' state/portfolio.json > state/portfolio.json.tmp \
-  && mv state/portfolio.json.tmp state/portfolio.json
-```
+## End-of-cycle
 
-JSONL appends only via `>>`. Never edit prior JSONL lines.
-
-## End-of-cycle flow
-
-1. **Validate all state files:**
+1. **Validate all state:**
    ```bash
-   jq empty config/mode.json state/portfolio.json state/halts.json \
-            state/lock.json state/cycle-index.json
+   jq empty config/mode.json state/portfolio.json state/halts.json state/lock.json state/cycle-index.json
    jq -c . state/trade-log.jsonl > /dev/null
    ```
-   Any failure → emit `persist_conflict`, call `notify` if possible, exit
-   without commit.
+   Fail → `persist_conflict` + notify + exit (no commit).
 
-2. **Append `nav_snapshot`** via `journal`:
+2. **`nav_snapshot`** via `journal`:
    ```json
    {"event_type":"nav_snapshot","nav_usdc":<n>,"cash_usdc":<n>,"positions_value_usdc":<n>}
    ```
-   Also append `{ts, nav_usdc}` to `state/cycle-index.json.nav_snapshots`
-   (cap array at 1000 most recent).
+   Append `{ts, nav_usdc}` to `cycle-index.json.nav_snapshots` (cap 1000).
 
-3. **Update `state/cycle-index.json`:**
-   - `last_cycle_id = <this>`, `last_started_at = <cycle_start ts>`,
-     `last_completed_at = <now>`.
-   - `last_pushed_commit` left alone until step 7.
+3. **`cycle-index.json`:** set `last_cycle_id`, `last_started_at`, `last_completed_at`. Leave `last_pushed_commit` for step 7.
 
-4. **Release the lock.** Atomic write:
-   ```json
-   {"schema_version":1,"active":false,"cycle_id":null,"started_at":null,"expires_at":null}
-   ```
+4. **Release lock** (atomic): `{schema_version:1, active:false, cycle_id:null, started_at:null, expires_at:null}`.
 
-5. **Append `cycle_end`** via `journal`.
+5. **`cycle_end`** via `journal`.
 
-6. **Commit:**
+6. **Commit** (Conventional Commits):
    ```bash
    git add -A
-   git commit -m "<conventional commit message including cycle_id and phase>"
+   git commit -m "<type>(<scope>): <subject> [cycle <cid>]"
    ```
-   Use Conventional Commits, e.g.:
-   - `feat(trade): paper_fill <market_slug> [cycle <cycle_id>]`
-   - `chore(cycle): pre_market complete [cycle <cycle_id>]`
-   - `fix(halt): circuit breaker tripped [cycle <cycle_id>]`
 
-7. **Pull / rebase / push:**
+7. **Pull/rebase/push:**
    ```bash
    git pull --rebase
    git push
    ```
-   Never `--force`. Never `--no-verify`.
+   Never `--force`, never `--no-verify`. On rejection: retry pull/rebase **once**. Still failing → `persist_conflict` + notify + non-zero exit. Stale lock recovers next cycle.
 
-   On rejection: retry pull/rebase **once**. Still conflicting?
-   - Append a local `persist_conflict` event.
-   - Call `notify` if possible.
-   - Exit non-zero. The lock release did not push — next cycle sees stale
-     lock and recovers.
-
-8. **Verify push landed.** Run:
+8. **Verify push:**
    ```bash
    git fetch origin
    LOCAL=$(git rev-parse HEAD)
    REMOTE=$(git rev-parse "origin/$(git rev-parse --abbrev-ref HEAD)")
    [ "$LOCAL" = "$REMOTE" ] || exit 1
    ```
-   If SHAs differ, push silently failed (e.g. branch protection). Treat
-   the same as a push rejection above: emit `persist_conflict`, notify,
-   exit non-zero.
+   Mismatch → `persist_conflict` + notify + non-zero exit.
 
-9. **Write HEAD SHA.** Set `cycle-index.json.last_pushed_commit = $LOCAL`.
-   A small follow-up commit + push for this one-line update is acceptable
-   (use `chore(cycle): record last_pushed_commit [cycle <cycle_id>]`).
+9. **Write SHA** to `cycle-index.json.last_pushed_commit`. Follow-up commit OK: `chore(cycle): record last_pushed_commit [cycle <cid>]`.
 
-## Mainnet pre-submit push (called from `trade` skill)
+## Mainnet pre-submit push (from `trade`)
 
 ```bash
 git add state/trade-log.jsonl
-git commit -m "feat(decision): pre-submit <idempotency_key> [cycle <cycle_id>]"
-git pull --rebase
-git push
+git commit -m "feat(decision): pre-submit <idempotency_key> [cycle <cid>]"
+git pull --rebase && git push
 ```
 
-Push failure here → `trade` skill must abort before any SDK call (the order
-has not been submitted).
+Push fail → `trade` aborts before SDK call (order not submitted).
 
 ## Failure modes
 
-- **Push unresolvable:** cycle is unsuccessful. Idempotency keys on any
-  already-pushed pre-submit decisions protect mainnet duplicates.
-- **State corrupted after a routine write:** `git checkout -- <file>` to
-  roll back if possible, log incident, notify, exit.
-- **Force-push attempted:** forbidden. Abort.
+- Push unresolvable → unsuccessful cycle. Idempotency keys on pre-submit decisions protect mainnet duplicates.
+- State corrupted after a routine write → `git checkout -- <file>` if possible, log, notify, exit.
+- Force-push attempted → forbidden, abort.

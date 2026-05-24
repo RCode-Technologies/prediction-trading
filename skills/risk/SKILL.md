@@ -1,85 +1,50 @@
 ---
 name: risk
-description: Pure math helpers for NAV computation, mark-price freshness, and rolling P&L. Does not write halts (that's skills/circuit-breaker). Also surfaces guardrail-recommendation hints for the human via the daily summary.
-inputs: state/portfolio.json, state/cycle-index.json.nav_snapshots, fresh CLOB midpoints
-outputs: returned values (no file writes); optional recommendation buffer for skills/notify
+description: Pure math — NAV, baseline, freshness, 24h P&L. Does NOT write halts (circuit-breaker owns that) or notify.
+inputs: state/portfolio.json, cycle-index.json.nav_snapshots, fresh CLOB midpoints
+outputs: returned values; optional in-memory recommendation buffer for notify
 ---
 
 # Risk
 
-Math + freshness helpers. Pure functions where possible. Callers:
-`skills/circuit-breaker` (for breaker evaluation), `skills/sizing` (for NAV
-in the 5% cap formula), `skills/reflect` (for hit-rate / Brier context).
+Stateless math helpers. Callers: `circuit-breaker`, `sizing`, `reflect`.
 
-## Public helpers
+## Helpers
 
-### `nav() -> {nav_usdc, cash_usdc, positions_value_usdc, stale_flags[]}`
+### `nav() → {nav_usdc, cash_usdc, positions_value_usdc, stale_flags[]}`
 
 ```
-nav_usdc = cash_usdc + Σ position.shares * fresh_mark_price
+nav_usdc = cash_usdc + Σ position.shares * mark_used
 ```
 
-A "fresh mark" is a CLOB midpoint whose quote timestamp is ≤15 min old.
-For each open position:
+Per open position:
+- Both sides + quote ≤15 min → use midpoint.
+- One side + ≤15 min → use last trade price.
+- Else → `stale:true`, use most recent value, append `{token_id, reason}` to `stale_flags`.
 
-- If both sides exist and quote ≤15 min: use midpoint.
-- If one side, ≤15 min: use last trade price.
-- Otherwise: mark `stale: true` for that position, use most recent value,
-  append `{token_id, reason}` to `stale_flags`.
+### `baseline_nav() → {nav_usdc, source} | null`
 
-`positions_value_usdc` = `Σ position.shares * mark_used`.
+- Most recent `nav_snapshots[i]` with `ts <= now - 24h` → source `"snapshot"`.
+- Else `portfolio.starting_capital` → source `"starting_capital"`.
+- Else `null` → caller (`circuit-breaker`) → `halt("no_baseline_nav")`.
 
-### `baseline_nav() -> {nav_usdc, source} | null`
+### `rolling_24h_pnl() → {current, baseline, pnl_usdc, pnl_pct, source}`
 
-- Most recent `nav_snapshots[i]` with `ts <= now - 24h`. Source =
-  `"snapshot"`.
-- Else: `portfolio.starting_capital`. Source = `"starting_capital"`.
-- Else: `null` (cold start with no seed). Caller (`circuit-breaker`)
-  treats this as `no_baseline_nav` and forces a halt.
+`current - baseline` + pct.
 
-### `rolling_24h_pnl() -> {current, baseline, pnl_usdc, pnl_pct, source}`
+### `freshness_summary() → {total_positions, stale_count, stale_ratio}`
 
-Wrapper: returns `nav().nav_usdc - baseline_nav().nav_usdc` plus the
-percentage. `source` carried through from `baseline_nav()`.
+`circuit-breaker.evaluate()` uses `stale_ratio > 0.5` to skip the breaker check.
 
-### `freshness_summary() -> {total_positions, stale_count, stale_ratio}`
+## Guardrail recommendation buffer
 
-Used by `circuit-breaker.evaluate()` to decide whether to skip a breaker
-check (`stale_ratio > 0.5` → skip + emit `preflight_failed` with
-`stale_marks_skip_breaker`).
+`reflect` may want to suggest a `guardrails.md` change (which it can't edit). Calls `risk.surface_recommendation(text)`; in-memory buffer for this cycle. `notify` reads it when composing `daily_summary` and embeds a "Guardrail recommendation for human review" section if non-empty. Not persisted as its own file.
 
-## Guardrail-recommendation surface
+## Deposit/withdrawal detection
 
-`reflect` may identify changes to `config/guardrails.md` it cannot apply
-itself (ADR 0005). It calls `risk.surface_recommendation(text)`. The
-function appends to an in-memory buffer for the current cycle. `notify`
-reads the buffer when composing the daily summary and embeds a
-"Guardrail recommendation for human review" section if non-empty.
-
-This buffer is not persisted as its own file; the recommendation lives
-inside the daily-summary Telegram message and the daily `recaps/` file.
-
-## Deposit / withdrawal detection
-
-v1 has no deposit/withdrawal pathway. If `cash_usdc` changes
-unexpectedly between cycles (delta unexplained by logged fills + fees),
-`risk` exposes a `detect_unreconciled_cash_delta()` helper that
-`circuit-breaker.evaluate()` calls; on detected mismatch, it forces
-`halt("unreconciled_cash_delta")` for human reconciliation.
-
-## What this skill does NOT do
-
-- Does **not** write `state/halts.json` — `skills/circuit-breaker` owns
-  that.
-- Does **not** send Telegram — `skills/notify` owns that.
-- Does **not** decide to trade or not — `skills/sizing` owns that.
-
-Keep this skill mathematically pure: stateless calls returning structured
-values.
+v1 has no deposit/withdrawal path. `detect_unreconciled_cash_delta()` is called by `circuit-breaker.evaluate()`; unexplained delta → `halt("unreconciled_cash_delta")`.
 
 ## Failure modes
 
-- **Missing `state/portfolio.json`:** raise to caller. Boot validation
-  should have caught this earlier.
-- **CLOB book call fails for a position:** mark that position stale,
-  continue. The freshness summary will reflect this.
+- Missing `state/portfolio.json` → raise to caller (boot should have caught it).
+- CLOB book call fails → mark position stale, continue.

@@ -1,74 +1,28 @@
 ---
 name: notify
-description: Telegram Bot API alerts. Per-mode suppression rules (paper sends only daily summary + circuit-breaker per ADR 0008). Never logs or echoes secrets.
-inputs: notification kind + payload data
-outputs: HTTP POST to api.telegram.org, notification event in trade-log
+description: Telegram Bot API alerts. Per-mode suppression. Never logs/echoes secrets.
+inputs: notification kind + payload
+outputs: HTTP POST to api.telegram.org, notification event
 ---
 
 # Notify
 
-Telegram alerts. The agent's only outbound human channel.
+Only outbound human channel. Never block the cycle.
 
-## Suppression rules (ADR 0008)
+## Suppression rules
 
-- **Paper:** send only `daily_summary` (from end-of-day routine) and
-  `circuit_breaker`. **Skip per-trade alerts.**
-- **Mainnet:** send `trade_placed`, `daily_summary`, `weekly_recap`,
-  `circuit_breaker`, `preflight_failed`, `persist_conflict`,
-  `phase_missed`.
+- **Paper:** `daily_summary` + `circuit_breaker` only. Skip per-trade.
+- **Mainnet:** `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`.
 
-If `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID` is absent:
-- **Paper:** silently skip.
-- **Mainnet:** handled as a `preflight_failed` in `trade` skill.
+Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
+- Paper → silently skip.
+- Mainnet → handled as `preflight_failed` upstream by `trade`.
 
 ## Steps
 
-1. **Resolve which kinds to send** based on mode + the calling routine's
-   request list.
-
-2. **Daily-summary dedupe.** Grep `state/trade-log.jsonl` for a prior
-   `notification` event with `kind: "daily_summary"` and `date: <today UTC>`.
-   If present, skip.
-
-3. **Compose payloads** (markdown-safe; never include secrets, wallet
-   addresses, raw env vars, or token-bearing URLs):
-
-   - `daily_summary`:
-     ```
-     [<mode>] Daily summary <YYYY-MM-DD>
-     NAV: $<nav> (Δ24h: <pct>%)
-     Cycles run: <n> / 4 phases
-     Forecasts: <n>  Paper fills: <n>  Mainnet fills: <n>
-     Open positions: <n>  Cash: $<cash>
-     Top movers: <list>
-     ```
-   - `weekly_recap`:
-     ```
-     [<mode>] Weekly recap <YYYY-Www>
-     NAV: $<nav> (Δ7d: <pct>%)
-     Total fills: <n>  Hit rate: <pct>%  Brier: <score>
-     Best call: <market> (+<usdc>)
-     Worst call: <market> (-<usdc>)
-     Strategy version: <vN>
-     ```
-   - `trade_placed` (mainnet only):
-     ```
-     [mainnet] Order placed
-     Market: <question>
-     Outcome: <label>  Side: BUY  Price: <p>  Shares: <n>  Notional: $<usdc>
-     Order id: <id>
-     ```
-   - `circuit_breaker`:
-     ```
-     [<mode>] CIRCUIT BREAKER — trading halted
-     Reason: <reason>  Triggered at: <ts>
-     Rolling 24h P&L: <pct>%
-     Resume requires manual edit of state/halts.json.
-     ```
-   - `preflight_failed`: which check + brief reason. No secrets.
-   - `persist_conflict`: branch + last commit attempted.
-   - `phase_missed`: which phase + last successful timestamp.
-
+1. Resolve which kinds to send based on mode + caller request.
+2. **`daily_summary` dedupe.** Grep trade-log for prior `notification kind:"daily_summary"` with `date:<today UTC>` → skip if present.
+3. **Compose payload** (markdown-safe; never include secrets, wallet addrs, raw env vars, token-bearing URLs).
 4. **Send:**
    ```bash
    curl -sS -X POST \
@@ -77,22 +31,24 @@ If `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID` is absent:
      --data-urlencode "text=<payload>" \
      --data-urlencode "parse_mode=Markdown"
    ```
-   Never echo `$TELEGRAM_BOT_TOKEN`. Never log the URL with the token in it.
-
-5. **Emit a `notification` event** via `journal` for each message sent:
+   Never echo `$TELEGRAM_BOT_TOKEN`. Never log URL with token.
+5. **`notification` event** via `journal`:
    ```json
    {"event_type":"notification","kind":"<kind>","date":"<YYYY-MM-DD>"}
    ```
 
-## Outputs to caller
+## Payload shapes
 
-`{sent: [...], skipped: [...]}`.
+- `daily_summary`: `[<mode>] Daily summary <YYYY-MM-DD>` + NAV (Δ24h%), cycles N/4, forecasts/paper_fills/mainnet_fills counts, open positions + cash, top movers.
+- `weekly_recap`: `[<mode>] Weekly recap <YYYY-Www>` + NAV (Δ7d%), total fills, hit rate, Brier, best/worst call, strategy version.
+- `trade_placed` (mainnet): market, outcome, side BUY, price, shares, notional, order_id.
+- `circuit_breaker`: `[<mode>] CIRCUIT BREAKER — trading halted` + reason, triggered_at, 24h P&L%, "Resume requires manual edit of state/halts.json".
+- `preflight_failed`: which check + brief reason (no secrets).
+- `persist_conflict`: branch + last commit attempted.
+- `phase_missed`: which phase + last successful ts.
 
 ## Failure modes
 
-- **Telegram API error:** retry once with backoff. Still failing → log
-  `notification` event with `kind: "<original>_failed"` and continue. Do
-  not block the cycle.
-- **Missing creds (paper):** silently skip; do not log a noisy failure.
-- **Missing creds (mainnet):** caller (`trade` skill) treats as preflight
-  failure upstream.
+- Telegram error → retry once with backoff → log `notification` `kind:"<original>_failed"` and continue.
+- Missing creds (paper) → silent skip.
+- Missing creds (mainnet) → caller (`trade`) handles as preflight upstream.

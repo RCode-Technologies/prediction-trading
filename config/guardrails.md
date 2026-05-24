@@ -1,84 +1,51 @@
 # Guardrails
 
-Canonical, non-negotiable limits for the trading agent. Edited by humans only.
-The reflection routine (`routines/80-reflect.md`) is **forbidden** from
-modifying this file (ADR 0005). If the agent thinks a guardrail should change,
-it surfaces a recommendation in the daily Telegram summary; the human decides.
+Human-owned, non-negotiable. Reflection **cannot** edit this file; it surfaces recommendations via daily summary.
 
 ## Position sizing — 5% per token
 
-A new order may be placed only if **both** of the following hold:
-
 ```
 existing_token_risk + new_order_notional + estimated_fees <= 0.05 * NAV
-new_order_notional + estimated_fees             <= cash_usdc
+new_order_notional + estimated_fees                       <= cash_usdc
 ```
 
-Where:
+- `NAV = cash_usdc + Σ(open_position.shares * fresh_mark_price)`.
+- Fresh mark = CLOB midpoint with quote `ts <= 15 min` old.
+- `existing_token_risk = Σ(position.cost_basis_usdc for same token_id) + Σ(open_order.notional_usdc + fee_usdc for same token_id)`.
+- Stale NAV → no new trades.
 
-- `NAV = cash_usdc + sum(open_position.shares * fresh_mark_price)` and a
-  "fresh mark" means a CLOB midpoint whose quote timestamp is ≤15 minutes old.
-- `existing_token_risk = sum(open_position.cost_basis_usdc for same token_id)
-  + sum(open_order.notional_usdc + open_order.fee_usdc for same token_id)`.
+## Correlation
 
-If any position lacks a fresh mark, NAV is `stale` and **no new trades** may
-open.
-
-## Correlation bucket
-
-When candidate markets resolve from materially related facts (same election,
-same match, same regulatory action), they share **one** 5% risk bucket. The
-formula above applies to the aggregate of all positions and orders in the
-bucket. If correlation is uncertain, reject the new trade.
+Related-fact markets (same election/match/regulatory event) share one 5% bucket; aggregate applies. Uncertain correlation → reject.
 
 ## Order direction
 
-v1 may open **only long BUY** positions in outcome tokens. SELL orders are
-allowed only to reduce or close an existing position; no short exposure.
+Long BUY only. SELL only to reduce/close.
 
-## Mark-price freshness — 15 minutes
+## Mark freshness
 
-Quotes older than 15 minutes are stale. Stale → no sizing, no trade. See
-`routines/40-decide-and-size.md`.
+Quotes >15 min = stale → no sizing, no trade.
 
-## Rolling 24h loss circuit breaker — -10%
+## Circuit breaker — -10% / 24h
 
-If `rolling_24h_pnl <= -0.10 * baseline_NAV`, set `state/halts.json.active =
-true`, log a `halt` event, notify Telegram, commit, push, and stop. Only a
-human can clear the halt. Baseline NAV is the latest `nav_snapshot` with
-`ts <= now - 24h`; if none, use `starting_capital`. v1 assumes no deposits
-or withdrawals; any appearance of either halts the agent for manual
-reconciliation. See `routines/99-circuit-breaker.md`.
+`rolling_24h_pnl <= -0.10 * baseline_NAV` → write `halts.json.active=true`, log `halt`, notify, commit, push, stop. Baseline = latest `nav_snapshot` with `ts <= now - 24h`, else `starting_capital`. Only humans clear. Unexplained cash delta also halts (v1 = no deposits/withdrawals).
 
-## Research cap — 3 sources per cycle
+## Research cap — 3 sources/cycle
 
-`routines/20-research.md` and `routines/30-analyze-markets.md` share one
-counter. Once 3 external sources are consumed, no further research or market
-discovery fetches occur this cycle. Safety price re-checks in `40` and `50`
-do not count. (ADR 0006.)
+Shared counter across `skills/research` + `skills/markets`. Includes native WebSearch/WebFetch. Safety re-checks in `sizing`/`trade` don't count.
 
-## Append-only log discipline
+## Append-only log
 
-`state/trade-log.jsonl` is append-only. Never edit prior lines. Every line is
-a single valid JSON object with `schema_version`, `event_id`, `cycle_id`,
-`event_type`, `ts`, `mode`.
+`state/trade-log.jsonl`: append only. Never edit prior lines. Each line = valid JSON with `schema_version`, `event_id`, `cycle_id`, `event_type`, `ts`, `mode`.
 
-## Mandatory commit + push
+## Push = success
 
-Every cycle ends with `git add -A && git commit -m "cycle <cycle_id>" && git
-pull --rebase && git push`. Never `--force`. A cycle that cannot push is not
-successful — log `persist_conflict` and notify. (ADR 0009.)
+Every cycle: commit, pull --rebase, push. Never `--force`. No push = `persist_conflict` + notify + non-zero exit.
 
-## Paper-vs-mainnet gate
+## Mainnet gate
 
-`routines/50-execute-trade.md` is the **only** routine permitted to read
-wallet secret values. Mainnet preconditions in that file are fail-closed:
-any missing item produces `preflight_failed` and no order. The agent must
-never infer Polymarket eligibility, use a VPN, or bypass platform
-restrictions. (ADR 0003.)
+`skills/trade` is the only skill that reads wallet secrets. Preflights are fail-closed. Never infer Polymarket eligibility, never use VPN, never bypass platform restrictions.
 
 ## Secrets
 
-`WALLET_SEED` is the only wallet secret env var. The agent checks presence
-with `[ -n "${WALLET_SEED:-}" ]` and never prints, logs, or commits the
-value. (ADR 0004.)
+`WALLET_SEED` is the only wallet secret. Presence check only: `[ -n "${WALLET_SEED:-}" ]`. Never print, log, or commit.

@@ -2,8 +2,7 @@
 name: daily-close
 cron: "0 22 * * *"
 cron_tz: UTC
-local_time: "17:00 America/New_York"
-also_covers: "Asia/Pacific opening (~22-24 UTC); EU sleep; daily reflection cadence"
+local_time: "17:00 ET"
 phase: daily_close
 expected_frequency: 1/day
 runs_weekly_recap_on: Sunday (date '+%u' == 7)
@@ -11,73 +10,41 @@ runs_weekly_recap_on: Sunday (date '+%u' == 7)
 
 # Daily Close — 22:00 UTC / 17:00 ET
 
-US market close. Day's signals are crystallised; reflect on the day's
-forecasts vs realized prices, generate recap, send daily Telegram summary.
-On Sundays also generate the weekly recap.
+US close. Crystallize day's signals. Reflect, recap, daily Telegram. Sundays: also weekly recap.
 
-## Skills invoked (in order)
+## Steps
 
-1. `skills/boot` — sync, validate, lock, halts check.
-2. `skills/circuit-breaker.evaluate()` — **checkpoint 1**: after boot.
-   If halted, send daily summary if due and jump to step 11.
-3. **Phase-miss check.** Confirm `phase_completed` events exist today for
-   `research_window` and `trade_window`. Emit `phase_missed` per gap;
-   `recap` skill includes these.
-4. `skills/markets` — final fresh-price snapshot on open positions (CLOB
-   calls; not research sources). Stale marks flagged.
-5. `skills/circuit-breaker.evaluate()` — **checkpoint 2**: after mark
-   refresh. Asian-time crashes that the overnight-watch may have missed
-   often surface here.
-6. `skills/risk.nav()` + write `nav_snapshot` event via `skills/journal`.
-7. `skills/circuit-breaker.evaluate()` — **checkpoint 3**: after final
-   nav_snapshot. If halted, surface in the recap below.
-8. `skills/recap` — write `recaps/YYYY-MM-DD.md` (daily), including the
-   learning scorecard used by reflection.
-   - **If Sunday:** also write `recaps/YYYY-Www.md` (weekly).
-9. `skills/reflect` — once per UTC date; convert the scorecard into a
-   strategy learning-state update when there is new evidence. May edit
-   `strategy/current.md` and snapshot to `strategy/history/`.
-10. `skills/notify` — send `daily_summary`. If Sunday, also send
-    `weekly_recap`.
-11. `skills/journal` — emit `phase_completed`.
-12. `skills/persist` — commit + push memory branch. **Cycle is only
-    successful when push lands.**
-
-## Output artifacts
-
-- `recaps/YYYY-MM-DD.md` (always).
-- `recaps/YYYY-Www.md` (Sundays only).
-- `strategy/current.md` updated + `strategy/history/YYYY-MM-DD-vN.md` if
-  reflection edits. The edit may be a measured learning-state update even if
-  no live trading rule changes.
-- Trade-log: `cycle_start`, `nav_snapshot`, `recap` (×1–2),
-  `reflection`, `notification` (×1–2), `phase_completed`, `cycle_end`.
+1. `boot`
+2. `circuit-breaker.evaluate()` — cp1. Halted → daily summary if due, jump to 11.
+3. **Phase-miss check.** Confirm today's `phase_completed` for `research_window` + `trade_window`. Emit `phase_missed` per gap.
+4. `markets` — final fresh-price snapshot on open positions (CLOB, not research). Flag stale.
+5. `circuit-breaker.evaluate()` — cp2 (post-marks). Asia-time crashes often surface here.
+6. `risk.nav()` + `journal.nav_snapshot`.
+7. `circuit-breaker.evaluate()` — cp3 (post-snapshot). Halted → surface in recap.
+8. `recap` — write `recaps/YYYY-MM-DD.md` (with learning + smartness scorecards used by reflection). **Sunday:** also `recaps/YYYY-Www.md`.
+9. `reflect` — once/UTC date. Convert scorecards into strategy update if new evidence. May edit `strategy/current.md` and snapshot to `strategy/history/`.
+10. `notify` — `daily_summary`. Sunday: also `weekly_recap`.
+11. `journal.phase_completed`.
+12. `persist`.
 
 ## Source budget
 
-0 external research sources. This routine derives from the trade-log only
-plus CLOB freshness calls.
+0 research sources. CLOB freshness only.
 
 ## Position-close policy
 
-- Near-resolution positions (`close_time < now + 12h`) are flagged in the
-  daily recap.
-- v1 does **not** auto-SELL to close. Closure is a human/strategy decision
-  surfaced in the recap.
-- Exception: if a halt is active AND a mainnet position is open with
-  `close_time < now + 12h`, the recap explicitly highlights the residual
-  exposure for human review.
-
-## Conventional commit suggestion
-
-- `feat(recap): daily <YYYY-MM-DD> [cycle <cycle_id>]`
-- Sundays: `feat(recap): daily + weekly <YYYY-Www> [cycle <cycle_id>]`
-- If strategy edited:
-  `feat(strategy): reflect → v<N+1> (snapshot v<old_N>) [cycle <cycle_id>]`
+- Near-resolution (`close_time < now + 12h`) → flagged in recap.
+- v1 does **not** auto-SELL. Human/strategy decision, surfaced in recap.
+- Exception: halt active + mainnet position with `close_time < now + 12h` → recap explicitly highlights residual exposure.
 
 ## Failure modes
 
-- Recap dedupe hit (already wrote today) → skip recap, still send notify if
-  daily summary not yet sent.
-- Reflection sees no data → write `reflection` event with `edited: false`.
+- Recap dedupe hit → skip recap; still send notify if not sent.
+- Reflect sees no data → `reflection edited:false`.
 - Notify fails → `notification` failed-kind event; cycle continues.
+
+## Commit
+
+- `feat(recap): daily <YYYY-MM-DD> [cycle <cid>]`
+- Sun: `feat(recap): daily + weekly <YYYY-Www> [cycle <cid>]`
+- If strategy edited: `feat(strategy): reflect → v<N+1> (snapshot v<old_N>) [cycle <cid>]`
