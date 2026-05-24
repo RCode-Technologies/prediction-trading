@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)"
+    ]
+  },
+  "enableAllProjectMcpServers": false,
+  "disabledMcpjsonServers": [
+    "claude_ai_Fathom",
+    "claude_ai_Gmail",
+    "claude_ai_Google_Calendar",
+    "claude_ai_Google_Drive",
+    "claude_ai_Notion",
+    "claude_ai_Slack",
+    "figma",
+    "pencil",
+    "plugin_second-opinion_codex"
+  ],
+  "enabledPlugins": {
+    "second-opinion@trailofbits": false,
+    "codex@openai-codex": false
+  }
+}
