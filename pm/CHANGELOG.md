@@ -5,6 +5,45 @@ Versioning is loose semver-ish: `v0.x` until first mainnet trade, then `v1.0`.
 
 ## [Unreleased]
 
+## [v0.3.0] — 2026-05-24
+
+### Changed
+
+- **Circuit-breaker is now a skill, not a routine** (ADR 0014, amends ADR
+  0010). Deleted `routines/circuit-breaker.md`; added
+  `skills/circuit-breaker/SKILL.md` with `evaluate()` and `halt(reason)`
+  entrypoints. Every scheduled routine now invokes the breaker at multiple
+  checkpoints (after boot, after mark refresh, after fills, after final
+  nav_snapshot).
+- **`skills/risk` slimmed to pure math.** NAV computation, baseline
+  lookup, freshness summary, guardrail-recommendation surface. Halt
+  writes moved to `skills/circuit-breaker`.
+- **Research falls back to native web tools.** `skills/research` adds
+  Agent native WebSearch / WebFetch as a fallback when no API keys are
+  configured (ADR 0015). All native-tool calls count against the same
+  3-source per-cycle cap.
+- **Push is the explicit cycle success criterion** (ADR 0016).
+  `skills/persist` now:
+  - sets git identity idempotently every cycle (`GIT_AUTHOR_NAME` /
+    `GIT_AUTHOR_EMAIL` defaults applied if env unset),
+  - runs `git push --dry-run` before the first commit and halts with
+    `push_permission_missing` if rejected,
+  - verifies local HEAD matches `origin/<branch>` after push and writes
+    the SHA to `cycle-index.json.last_pushed_commit`,
+  - cycle routine prompts in README explicitly demand commit+push.
+
+### Added
+
+- ADR 0014 — circuit-breaker as skill, multi-checkpoint invocation.
+- ADR 0015 — research native web tools fallback.
+- ADR 0016 — push is the cycle success criterion.
+- `skills/circuit-breaker/SKILL.md`.
+
+### Removed
+
+- `routines/circuit-breaker.md` (logic moved to skill; preserved in git
+  history).
+
 ## [v0.2.0] — 2026-05-24
 
 ### Changed — Instruction Pack v1.1 (skills/routines split + 24/7 schedule)

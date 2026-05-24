@@ -18,13 +18,17 @@ spent here.
 ## Skills invoked (in order)
 
 1. `skills/boot` — sync, validate, lock, halts check.
-2. `skills/research` — angle: "what shifted overnight (EU close, Asia
-   resolutions, weekend polling, late sports)?". Budget: up to 3 sources.
-3. `skills/markets` — build/refresh watchlist with fresh prices. May
+2. `skills/circuit-breaker.evaluate()` — **checkpoint 1**: after boot.
+   If halted, skip to step 6 (send daily summary if due, persist, exit).
+3. `skills/research` — angle: "what shifted overnight (EU close, Asia
+   resolutions, weekend polling, late sports)?". Budget: up to 3 sources
+   (external API keys → agent native WebSearch/WebFetch → Polymarket only).
+4. `skills/markets` — build/refresh watchlist with fresh prices. May
    consume 1 Gamma source from the same 3-source bucket.
-4. `skills/journal` — emit `research_note`, `candidate_rank`,
+5. `skills/journal` — emit `research_note`, `candidate_rank`,
    `phase_completed` events.
-5. `skills/persist` — commit + push memory branch.
+6. `skills/persist` — commit + push memory branch. **The cycle is only
+   successful when push lands.**
 
 ## Output artifacts
 

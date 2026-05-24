@@ -32,9 +32,12 @@ self-documenting.
 | 18:00 | 13:00 | `trade-window` | Peak US activity; decisions + execution |
 | 22:00 | 17:00 | `daily-close` | US close; recap + reflection + daily summary (Sun: weekly) |
 
-A fifth routine, `circuit-breaker`, is **reactive** (not scheduled). It
-documents the halt protocol enforced by `skills/risk`, invoked from other
-routines on breach.
+A fifth routine, `circuit-breaker`, was **reactive** (not scheduled) and
+documented the halt protocol enforced by `skills/risk`, invoked from other
+routines on breach. **Amended by ADR 0014:** that file was promoted to
+`skills/circuit-breaker/SKILL.md` and is no longer a routine. v1.1 now has
+four scheduled routines only; the breaker is invoked at multiple
+checkpoints inside each routine.
 
 The memory-branch contract from ADR 0009 is preserved unchanged:
 

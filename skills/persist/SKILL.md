@@ -1,6 +1,6 @@
 ---
 name: persist
-description: Atomic JSON writes, JSON/JSONL validation, lock release, git commit + pull/rebase + push. Single canonical writer for state transitions and the only path to the memory branch.
+description: Atomic JSON writes, JSON/JSONL validation, lock release, git identity setup, git commit + pull/rebase + push. Single canonical writer for state transitions and the only path to the memory branch. **A cycle that does not successfully push is not successful** — push failures halt the cycle and trigger a notification.
 inputs: pending changes in working tree, cycle_id
 outputs: HEAD SHA pushed to memory branch, lock released, cycle_end event
 ---
@@ -10,6 +10,42 @@ outputs: HEAD SHA pushed to memory branch, lock released, cycle_end event
 End-of-cycle bookkeeping. Validates state, releases the lock, commits and
 pushes the memory branch. Also invoked mid-cycle by the `trade` skill for
 the mainnet pre-submit push.
+
+## Push is the success criterion
+
+The cycle is **only successful** when `git push` lands on the memory
+branch. A green Claude routine status that did not push is a failure.
+This skill must verify the push succeeded and write the resulting commit
+SHA to `cycle-index.json.last_pushed_commit` before exiting.
+
+## Git identity setup (idempotent — run on every cycle)
+
+Before any commit, ensure git knows who is committing. Run unconditionally
+— it's a no-op if already set:
+
+```bash
+git config --global user.email "${GIT_AUTHOR_EMAIL:-agent@prediction-trading.local}"
+git config --global user.name  "${GIT_AUTHOR_NAME:-Polymarket Trading Agent}"
+```
+
+The Claude Code cloud routine injects a working git identity automatically
+when the GitHub integration is enabled, but this fallback guarantees the
+cycle does not abort on `please tell me who you are` when the env is
+under-provisioned (e.g. a local manual dry run).
+
+## Push permission preflight
+
+Before the first commit of the cycle, sanity-check push permission:
+
+```bash
+git push --dry-run 2>&1 | head -5
+```
+
+If the dry-run output indicates auth failure (`Permission denied`,
+`fatal: could not read Username`, `403`, `remote: Repository moved`), the
+cycle cannot persist. Halt early via `skills/circuit-breaker.halt(
+"push_permission_missing")`. Better to fail fast than do work that will
+be lost.
 
 ## Atomic write rule
 
@@ -75,9 +111,20 @@ JSONL appends only via `>>`. Never edit prior JSONL lines.
    - Exit non-zero. The lock release did not push — next cycle sees stale
      lock and recovers.
 
-8. **Write HEAD SHA.** After successful push, read local HEAD SHA, set
-   `cycle-index.json.last_pushed_commit`. A small follow-up commit + push for
-   this one-line update is acceptable.
+8. **Verify push landed.** Run:
+   ```bash
+   git fetch origin
+   LOCAL=$(git rev-parse HEAD)
+   REMOTE=$(git rev-parse "origin/$(git rev-parse --abbrev-ref HEAD)")
+   [ "$LOCAL" = "$REMOTE" ] || exit 1
+   ```
+   If SHAs differ, push silently failed (e.g. branch protection). Treat
+   the same as a push rejection above: emit `persist_conflict`, notify,
+   exit non-zero.
+
+9. **Write HEAD SHA.** Set `cycle-index.json.last_pushed_commit = $LOCAL`.
+   A small follow-up commit + push for this one-line update is acceptable
+   (use `chore(cycle): record last_pushed_commit [cycle <cycle_id>]`).
 
 ## Mainnet pre-submit push (called from `trade` skill)
 

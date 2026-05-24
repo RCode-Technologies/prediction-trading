@@ -18,11 +18,16 @@ watchlist crosses a strong-edge threshold while books are thin.
 ## Skills invoked (in order)
 
 1. `skills/boot` — sync, validate, lock, halts check.
-2. `skills/markets` — refresh CLOB midpoints on **open positions only**
+2. `skills/circuit-breaker.evaluate()` — **checkpoint 1**: after boot.
+   If halted, jump to step 8.
+3. `skills/markets` — refresh CLOB midpoints on **open positions only**
    (no candidate discovery; no research-budget burn).
-3. `skills/risk` — write `nav_snapshot`; evaluate 24h circuit breaker
-   (Asian-time crashes are most likely to fire here).
-4. **Opportunistic trade gate.** Only if:
+4. `skills/risk.nav()` + write `nav_snapshot` event via `skills/journal`.
+5. `skills/circuit-breaker.evaluate()` — **checkpoint 2**: after mark
+   refresh + nav_snapshot. **Asian-time crashes are most likely to fire
+   here** — this is the routine where the breaker most often does work.
+   If halted, jump to step 8.
+6. **Opportunistic trade gate.** Only if:
    - watchlist from `research-window` is fresh (≤24h),
    - a watchlist candidate's midpoint moved ≥200 bps in the agent's favor
      since the watchlist was written,
@@ -31,8 +36,11 @@ watchlist crosses a strong-edge threshold while books are thin.
    - mode allows it (paper post-observation or mainnet preflight passes),
    then invoke `skills/sizing` → `skills/trade` for that single candidate.
    Skip otherwise.
-5. `skills/journal` — emit `phase_completed`.
-6. `skills/persist` — commit + push.
+7. `skills/circuit-breaker.evaluate()` — **checkpoint 3**: only if a
+   trade fired in step 6.
+8. `skills/journal` — emit `phase_completed`.
+9. `skills/persist` — commit + push. **Cycle is only successful when push
+   lands.**
 
 ## Output artifacts
 

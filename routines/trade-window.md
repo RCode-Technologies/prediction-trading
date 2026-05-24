@@ -17,21 +17,28 @@ execution window**, both paper and mainnet.
 ## Skills invoked (in order)
 
 1. `skills/boot` — sync, validate, lock, halts check.
-2. **Phase-miss check.** Grep trade-log for a `phase_completed` event today
+2. `skills/circuit-breaker.evaluate()` — **checkpoint 1**: after boot.
+   If halted, skip to step 10.
+3. **Phase-miss check.** Grep trade-log for a `phase_completed` event today
    with `phase:"research_window"`. If missing:
    - Run a degraded research pass (budget 1 source) to build a minimum
      watchlist.
    - Emit `phase_missed` event for `research_window` (recap will surface it).
-3. `skills/markets` — refresh watchlist prices (CLOB book calls; not
+4. `skills/markets` — refresh watchlist prices (CLOB book calls; not
    research sources). Drop any candidate whose midpoint went stale.
-4. `skills/sizing` — for each candidate that still passes min-edge:
+5. `skills/circuit-breaker.evaluate()` — **checkpoint 2**: after mark
+   refresh (fresh marks may have moved NAV). If halted, skip to step 10.
+6. `skills/sizing` — for each candidate that still passes min-edge:
    forecast + decision. Up to **one mainnet order per cycle** (paper has
    no such cap but practical limit ≤3 paper fills).
-5. `skills/trade` — paper or mainnet branch. Pre-submit push for mainnet.
-6. `skills/risk` — circuit breaker check after fills (in case new
-   positions tipped the 24h P&L).
-7. `skills/journal` — emit `phase_completed`.
-8. `skills/persist` — commit + push.
+7. `skills/trade` — paper or mainnet branch. Pre-submit push for mainnet.
+   On internal failure modes (mainnet cancel fail, post-submit push fail)
+   `trade` calls `skills/circuit-breaker.halt(reason)` directly.
+8. `skills/circuit-breaker.evaluate()` — **checkpoint 3**: after each fill
+   completes and portfolio is updated. If halted, skip to step 10.
+9. `skills/journal` — emit `phase_completed`.
+10. `skills/persist` — commit + push. **Cycle is only successful when
+    push lands.**
 
 ## Output artifacts
 

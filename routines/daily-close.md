@@ -18,20 +18,28 @@ On Sundays also generate the weekly recap.
 ## Skills invoked (in order)
 
 1. `skills/boot` — sync, validate, lock, halts check.
-2. **Phase-miss check.** Confirm `phase_completed` events exist today for
+2. `skills/circuit-breaker.evaluate()` — **checkpoint 1**: after boot.
+   If halted, send daily summary if due and jump to step 11.
+3. **Phase-miss check.** Confirm `phase_completed` events exist today for
    `research_window` and `trade_window`. Emit `phase_missed` per gap;
    `recap` skill includes these.
-3. `skills/markets` — final fresh-price snapshot on open positions (CLOB
+4. `skills/markets` — final fresh-price snapshot on open positions (CLOB
    calls; not research sources). Stale marks flagged.
-4. `skills/risk` — write `nav_snapshot`, evaluate 24h circuit breaker.
-5. `skills/recap` — write `recaps/YYYY-MM-DD.md` (daily).
+5. `skills/circuit-breaker.evaluate()` — **checkpoint 2**: after mark
+   refresh. Asian-time crashes that the overnight-watch may have missed
+   often surface here.
+6. `skills/risk.nav()` + write `nav_snapshot` event via `skills/journal`.
+7. `skills/circuit-breaker.evaluate()` — **checkpoint 3**: after final
+   nav_snapshot. If halted, surface in the recap below.
+8. `skills/recap` — write `recaps/YYYY-MM-DD.md` (daily).
    - **If Sunday:** also write `recaps/YYYY-Www.md` (weekly).
-6. `skills/reflect` — once per UTC date; may edit `strategy/current.md`
+9. `skills/reflect` — once per UTC date; may edit `strategy/current.md`
    and snapshot to `strategy/history/`.
-7. `skills/notify` — send `daily_summary`. If Sunday, also send
-   `weekly_recap`.
-8. `skills/journal` — emit `phase_completed`.
-9. `skills/persist` — commit + push memory branch.
+10. `skills/notify` — send `daily_summary`. If Sunday, also send
+    `weekly_recap`.
+11. `skills/journal` — emit `phase_completed`.
+12. `skills/persist` — commit + push memory branch. **Cycle is only
+    successful when push lands.**
 
 ## Output artifacts
 
