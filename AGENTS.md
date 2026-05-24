@@ -59,6 +59,10 @@ Every forecast/decision must carry: `strategy_version`, `forecast_id`, `thesis_i
 
 Check presence only: `[ -n "${VAR:-}" ]`. Never print, log, echo, or commit values. `WALLET_SEED` is the only wallet secret.
 
+## External integrations are shell, not MCP
+
+All external systems the agent touches — Telegram, Polymarket CLOB, research APIs, RPC nodes — are reached via `Bash` (curl, the polymarket Python SDK in the submodule, `git`). There are **no** MCP servers, plugin tools, or `mcp__*` integrations in the agent's contract, and the agent must not behave as if there could be. If a skill's steps include a `curl`/SDK invocation and the corresponding env vars are present, that is the integration — execute it. Refusing a routine on the grounds that "no <vendor> integration is available in this environment" is a contract violation: re-read the skill and run its shell commands instead. Alternative channels (Slack, Drive, "display the file here") are never an acceptable substitute for the integration the skill specifies.
+
 ## Token budget
 
 Only this file + the 7 boot files load automatically (mode.json, halts.json, lock.json, portfolio.json, cycle-index.json, trade-log.jsonl tail, strategy/current.md). Skills load on demand, one at a time.

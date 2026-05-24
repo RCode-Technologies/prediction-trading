@@ -1,1 +1,1 @@
-Read AGENTS.md for project instructions.
+**Read `AGENTS.md` before responding to any request — including ad-hoc human asks.** It defines this project's integration contract (Telegram, Polymarket, research APIs are all `Bash` + `curl` + env vars; no MCP tools). Never refuse a task on the grounds that "I don't have a `<vendor>` integration available" without first reading `AGENTS.md` and the relevant `skills/<name>/SKILL.md`.
