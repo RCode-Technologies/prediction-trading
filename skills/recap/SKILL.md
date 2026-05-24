@@ -34,6 +34,20 @@ a `recap` event.
      - attribution by `strategy_version`, `thesis_id`, `feature_tags`, and
        `source_providers` where available
      - missing learning fields that blocked attribution
+   - **Smartness scorecard** (rolling 30 UTC dates, the structured handoff
+     to `skills/reflect` — emit as a fenced JSON block in the markdown so
+     reflection can `jq` it without parsing prose):
+     - `brier_agent`, `brier_market_p`, `brier_skill = brier_market_p - brier_agent`
+     - `calibration_slope`, `calibration_intercept` (OLS of outcome on `your_p`)
+     - `auc`, `kl_vs_market`, `drift_skill`, `rejected_drift`
+     - per `source_providers`: `{provider, resolved_n, brier_provider, brier_market_p, penalty_active}`
+     - per `feature_tag`: `{tag, resolved_n, brier_tag, brier_market_p}`
+     - `brier_skill_trend_14d` = OLS slope of daily `brier_skill` over the
+       trailing 14 UTC dates; sign drives the "is the agent improving?" verdict
+     - `last_good_version`, `days_since_last_improvement`
+     - `exploration_due_today` = thesis IDs whose `next_retry_date <= today`
+     - `reflection_outcomes_30d` = `{accepted, regression_blocked, auto_revert}`
+       counts of the last 30 reflection events
 
 3. **Write `recaps/YYYY-MM-DD.md`** with frontmatter:
 
@@ -47,9 +61,11 @@ a `recap` event.
    ```
 
    Body sections: **Summary**, **Activity by phase**, **P&L**,
-   **Open positions**, **Learning scorecard**, **Notes** (reflection hints if
-   any). The learning scorecard is the handoff to `skills/reflect`; do not
-   reduce it to prose if structured tables are possible.
+   **Open positions**, **Learning scorecard**, **Smartness scorecard**,
+   **Notes** (reflection hints if any). The learning scorecard + smartness
+   scorecard together are the handoff to `skills/reflect`; both must use
+   structured tables / fenced JSON, not prose, so reflection can read them
+   programmatically.
 
 4. **Emit `recap` event** via `journal`:
 
@@ -77,6 +93,13 @@ a `recap` event.
    - Calibration by probability bucket and market class
    - Hypotheses promoted, demoted, or still collecting evidence
    - Decision quality: accepted vs rejected candidates and their later drift
+   - **7-day smartness delta**: this week's `brier_skill` minus last week's,
+     calibration slope/intercept change, AUC change, source-quality
+     penalties added or lifted, exploration retries fired and their outcome,
+     auto-reverts triggered, regression-blocked edits. Surface "is the agent
+     getting smarter week-over-week?" as a one-line verdict driven by the
+     sign of the `brier_skill` delta and the calibration-slope movement
+     toward 1.0.
 
 4. **Write `recaps/YYYY-Www.md`** (ISO week) with frontmatter `kind: weekly`,
    `iso_week: YYYY-Www`. Body: **Performance**, **Trade quality**,

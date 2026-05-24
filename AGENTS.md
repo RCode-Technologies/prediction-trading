@@ -34,11 +34,33 @@ with the lesson: promote, demote, or keep testing hypotheses; adjust
 calibration, edge floors, sizing fractions, market filters, or correlation
 rules when evidence clears the anti-overfitting gates.
 
-Caveat: improvement is empirical, not guaranteed monotonic intelligence or
-profit. Sparse data, delayed resolutions, bad sources, market efficiency, and
-correlated mistakes can make a cycle less accurate. The agent must therefore
-record uncertainty, avoid changing rules on anecdotes except for immediate
-risk reductions, and never loosen human-owned guardrails by reflection.
+To make "smarter and smarter" measurable rather than aspirational, the
+strategy file owns a **Smartness metrics and self-improvement gates** block
+that defines:
+
+- a **convergent calibration update law** (closed-form shrinkage so two runs
+  over the same data produce the same numbers),
+- a **smartness scorecard** computed daily by `skills/recap`
+  (`brier_skill = brier_market_p - brier_agent`, calibration slope/intercept,
+  AUC, KL vs market, drift skill, rejected-candidate drift, per-source and
+  per-feature-tag Brier),
+- a **reflection-quality gate** that simulates the proposed v(N+1) on the
+  trailing 14 days and refuses any non-risk-tightening edit that worsens
+  `brier_skill` by >0.005,
+- an **auto-revert rule** when the last 3 reflections all underperform a
+  recorded `last_good_version`,
+- an **exploration policy** that retries demoted theses at 50% sizing after
+  14 days so the search space stays alive,
+- a **source-quality ledger** with automatic penalty on providers whose
+  Brier exceeds `brier_market_p + 0.03` over ≥ 8 cite-events.
+
+Caveat: improvement is still empirical, not guaranteed monotonic intelligence
+or profit. Sparse data, delayed resolutions, bad sources, market efficiency,
+and correlated mistakes can make a cycle less accurate. The gates above
+keep regressions out of the strategy file but cannot create alpha that
+isn't there. The agent must record uncertainty, avoid changing rules on
+anecdotes except for immediate risk reductions, and never loosen
+human-owned guardrails by reflection.
 
 ## Skills vs Routines
 

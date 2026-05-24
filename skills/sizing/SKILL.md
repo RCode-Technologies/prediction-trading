@@ -45,15 +45,27 @@ emitted here is the input to the `trade` skill.
    `strategy/current.md`):
 
    ```
-   edge            = your_p - market_p
-   kelly_fraction  = edge / (1 - market_p)        # binary BUY at market_p
-   strategy_frac   = <from strategy/current.md, default 0.25>
-   desired_notional = clamp(kelly_fraction * strategy_frac * NAV,
-                            0, 0.05 * NAV)
-   shares           = floor(desired_notional / market_p / share_lot)
+   edge               = your_p - market_p
+   kelly_fraction     = edge / (1 - market_p)        # binary BUY at market_p
+   strategy_frac      = <from strategy/current.md, default 0.25>
+
+   # Apply learned multipliers from strategy/current.md:
+   thesis_sizing_mult = hypothesis_registry[thesis_id].sizing_mult  # default 1.0
+   source_penalty     = product over each cited provider:
+                          0.5 if provider.status == "penalized" else 1.0
+   effective_frac     = strategy_frac * thesis_sizing_mult * source_penalty
+
+   desired_notional   = clamp(kelly_fraction * effective_frac * NAV,
+                              0, 0.05 * NAV)
+   shares             = floor(desired_notional / market_p / share_lot)
    new_order_notional = shares * market_p
-   estimated_fees   = <Polymarket fee schedule>
+   estimated_fees     = <Polymarket fee schedule>
    ```
+
+   Theses with `status: "demoted"` are excluded from sizing entirely
+   (emit `decision` with `reason: "thesis_demoted"`, shares 0).
+   Theses with `status: "probation"` use `sizing_mult: 0.5` per the
+   exploration policy.
 
 6. **5% cap check.** `existing_token_risk` = sum of open-position cost basis
    - open orders for the same `token_id`. Reduce `shares` until both cap

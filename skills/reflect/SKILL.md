@@ -55,6 +55,71 @@ better future policy; recaps and logs alone are not learning.
      If evidence is weaker, add it to pending evidence instead of changing a
      trading rule.
 
+5a. **Compute the smartness scorecard.** Read the block written by
+    `skills/recap` for today (`recaps/<date>.md` "Smartness scorecard")
+    and the trailing 30d slice from prior recaps. If recap did not run or
+    its scorecard is empty, recompute from `state/trade-log.jsonl` directly:
+
+    - `brier_agent`, `brier_market_p`, `brier_skill = brier_market_p - brier_agent`
+    - `calibration_slope`, `calibration_intercept` (OLS over `your_p` vs outcome)
+    - `auc`, `kl_vs_market`, `drift_skill`, `rejected_drift`
+    - per-provider `{resolved_n, brier_provider, brier_market_p}`
+    - per-`feature_tag` `{resolved_n, brier_tag, brier_market_p}`
+
+    Hold these in memory for the next steps. Write them into the `metrics`
+    block of the `reflection` event at step 8.
+
+5b. **Apply the convergent calibration update law** (see
+    `strategy/current.md` → "Smartness metrics and self-improvement gates"
+    → "Convergent calibration update law"). For each bucket with
+    `resolved_n >= 10`:
+
+    ```
+    adjustment = clamp(min(1.0, resolved_n/30) * (hit_rate - bucket_mid),
+                       -0.08, +0.08)
+    ```
+
+    Use the resulting adjustments as the **proposed** v(N+1) calibration
+    ledger. Do not write yet.
+
+5c. **Reflection-quality gate.** Simulate v(N+1) on the trailing 14 days
+    of resolved forecasts:
+
+    1. Re-derive each forecast's `your_p` under the proposed v(N+1)
+       calibration + feature-tag penalties + source penalties.
+    2. Recompute `brier_agent` → `brier_skill_after`.
+    3. Read `brier_skill_before` from today's scorecard.
+    4. If `brier_skill_after < brier_skill_before - 0.005` **and** the edit
+       is not a risk-tightening edit (severe miss, correlation surprise,
+       stale-mark failure, source-quality failure), **refuse the edit**.
+       Emit `reflection` with `edited:false`,
+       `reason:"regression_blocked"`, include both `brier_skill_before`
+       and `brier_skill_after` in `metrics`, append the proposal to
+       **Pending evidence** in `strategy/current.md` (this is a
+       pending-evidence-only append; no version bump, no history snapshot),
+       and exit.
+
+5d. **Auto-revert check.** Inspect the last 3 `reflection` events:
+    - If all three have `brier_skill` lower than `last_good_version`'s
+      `brier_skill` (reading from `strategy/history/`), the next edit
+      must be a revert.
+    - Copy the `last_good_version` snapshot back to `strategy/current.md`,
+      preserve the failed-run version as
+      `strategy/history/<date>-v<failed_N>.md`, bump the version, and emit
+      `reflection` with `edited:true`, `reason:"auto_revert"`,
+      `reverted_to:"<vN>"`. Skip the standard "decide whether to edit"
+      branch.
+
+5e. **Exploration retries.** Walk the hypothesis registry:
+    - For each `status:"demoted"` thesis with `next_retry_date <= today`:
+      flip to `status:"probation"`, `sizing_mult:0.5`, clear
+      `next_retry_date`. Mark in pending evidence: "probation collection,
+      5 forecasts".
+    - For each `status:"probation"` thesis with ≥ 5 resolved forecasts
+      since promotion: compute that batch's `brier_skill`. If `> 0`, set
+      `status:"watch"`, `sizing_mult:1.0`. Else re-demote with
+      `next_retry_date = today + 14d`.
+
 6. **Decide whether to edit.** Reasons to edit:
    - Hit-rate or Brier worse than the strategy's stated threshold.
    - Repeated mispricing pattern not captured in current strategy.
@@ -95,13 +160,28 @@ better future policy; recaps and logs alone are not learning.
      "prior_version": "v<old_N>",
      "new_version": "v<N+1>",
      "snapshot": "strategy/history/<YYYY-MM-DD>-v<old_N>.md",
+     "reason": "normal|regression_blocked|auto_revert|risk_tighten",
+     "reverted_to": null,
      "metrics": {
        "resolved_forecasts": 0,
-       "brier": null,
+       "brier_agent": null,
+       "brier_market_p": null,
+       "brier_skill_before": null,
+       "brier_skill_after": null,
+       "calibration_slope": null,
+       "calibration_intercept": null,
+       "auc": null,
+       "kl_vs_market": null,
+       "drift_skill": null,
+       "rejected_drift": null,
        "unresolved_drift_count": 0
      },
+     "per_source": [],
+     "per_feature_tag": [],
      "promoted": [],
      "demoted": [],
+     "probation_started": [],
+     "probation_resolved": [],
      "pending": ["<lesson>"],
      "rationale": "<short>"
    }
@@ -125,3 +205,9 @@ better future policy; recaps and logs alone are not learning.
   to pending evidence so future forecasts become attributable.
 - **YAML version parse fails:** treat as `v0`; write `v1` snapshot.
 - **Snapshot write fails:** do not overwrite `current.md`. Log + exit.
+- **Smartness gate refused the edit:** not an error. Emit
+  `reflection` with `edited:false`, `reason:"regression_blocked"`, append
+  the proposal to pending evidence. Next reflection re-tries with more data.
+- **Auto-revert path:** treat the revert as a normal edit for snapshotting
+  and version bump, but mark `reason:"auto_revert"` so future reflections
+  see it in the trade-log when computing `last_good_version`.
