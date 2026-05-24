@@ -25,17 +25,25 @@ emitted here is the input to the `trade` skill.
    does **not** count as a research source). If `stale: true` or both
    bid/ask absent, reject this candidate.
 
-2. **Emit a `forecast` event** via `journal` for every candidate considered
+2. **Apply learned calibration.** Read `strategy/current.md` for active
+   calibration adjustments, demoted feature tags, source penalties, and
+   market-class rules. Preserve both `raw_your_p` (from research / markets)
+   and calibrated `your_p` (the probability used for sizing). If no empirical
+   adjustment exists yet, set them equal and record `calibration_applied:false`.
+
+3. **Emit a `forecast` event** via `journal` for every candidate considered
    (even if not traded):
+
    ```json
-   {"event_type":"forecast","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<midpoint>,"shares":0,"notional_usdc":0,"fee_usdc":0,"idempotency_key":null,"order_id":null,"your_p":<p>,"market_p":<midpoint>,"confidence":<0..1>}
+   {"event_type":"forecast","forecast_id":"<cycle_id>-<market_id>-<token_id>","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<midpoint>,"shares":0,"notional_usdc":0,"fee_usdc":0,"idempotency_key":null,"order_id":null,"strategy_version":"<vN>","thesis_id":"<id>","evidence_refs":["research/YYYY-MM-DD/<slug>.md#<thesis_id>"],"feature_tags":["<tag>"],"source_providers":["<provider>"],"prior_p":<p0>,"raw_your_p":<p_raw>,"your_p":<p>,"market_p":<midpoint>,"confidence":<0..1>,"calibration_bucket":"50-60","calibration_applied":false,"close_time":"<iso>","resolution_criteria":"<how outcome resolves>","disconfirming_signals":["<signal>"]}
    ```
 
-3. **If `mode.observation_only == true`:** stop here. Forecast is the entire
+4. **If `mode.observation_only == true`:** stop here. Forecast is the entire
    output of sizing during the observation window.
 
-4. **Compute fractional Kelly** (default `f = 0.25`, override from
+5. **Compute fractional Kelly** (default `f = 0.25`, override from
    `strategy/current.md`):
+
    ```
    edge            = your_p - market_p
    kelly_fraction  = edge / (1 - market_p)        # binary BUY at market_p
@@ -47,31 +55,34 @@ emitted here is the input to the `trade` skill.
    estimated_fees   = <Polymarket fee schedule>
    ```
 
-5. **5% cap check.** `existing_token_risk` = sum of open-position cost basis
-   + open orders for the same `token_id`. Reduce `shares` until both cap
-   formulas pass. If `shares == 0`, emit a `decision` with
-   `reason: "below_min_size"` and stop.
+6. **5% cap check.** `existing_token_risk` = sum of open-position cost basis
+   - open orders for the same `token_id`. Reduce `shares` until both cap
+     formulas pass. If `shares == 0`, emit a `decision` with
+     `reason: "below_min_size"` and stop.
 
-6. **Correlation guard.** Walk open positions + other top candidates. If two
+7. **Correlation guard.** Walk open positions + other top candidates. If two
    markets resolve on materially related facts (same election, same match,
    same regulatory event), treat as one bucket and apply 5% to the
    aggregate. Uncertain correlation = reject.
 
-7. **Build `idempotency_key`:**
+8. **Build `idempotency_key`:**
+
    ```
    <mode>:<market_id>:<token_id>:<side>:<price>:<shares>:<strategy_version>
    ```
+
    where `strategy_version` is the `version:` YAML field at the top of
    `strategy/current.md` (default `v0`).
 
-8. **Duplicate check.** Grep `state/trade-log.jsonl` for the key. If a prior
+9. **Duplicate check.** Grep `state/trade-log.jsonl` for the key. If a prior
    cycle already submitted under this key, emit a `decision` with
    `reason: "idempotency_duplicate"` and stop.
 
-9. **Emit `decision`** via `journal`:
-   ```json
-   {"event_type":"decision","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<midpoint>,"shares":<n>,"notional_usdc":<usdc>,"fee_usdc":<est>,"idempotency_key":"<key>","order_id":null,"strategy_version":"<vN>","reason":"<short>"}
-   ```
+10. **Emit `decision`** via `journal`:
+
+```json
+{"event_type":"decision","forecast_id":"<forecast_id>","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<midpoint>,"shares":<n>,"notional_usdc":<usdc>,"fee_usdc":<est>,"idempotency_key":"<key>","order_id":null,"strategy_version":"<vN>","kelly_fraction":<n>,"strategy_fraction":<n>,"expected_value_usdc":<n>,"risk_bucket_id":"<bucket>","thesis_id":"<id>","feature_tags":["<tag>"],"learning_intent":"test|exploit|risk_reduction","reason":"<short>"}
+```
 
 ## Outputs to caller
 

@@ -9,6 +9,37 @@ model probability, manage correlation, size with Kelly / fractional-Kelly,
 identify mispricing, and refine your models through research and reflection.
 The human provides credentials, a mode flag, and hard risk limits — nothing else.
 
+## Self-learning contract
+
+This system is allowed to improve only through evidence that survives in this
+repository. A run is smarter than a prior run when future forecasts, rankings,
+or sizing decisions use measured lessons from `state/trade-log.jsonl`,
+`recaps/`, `research/`, and `strategy/current.md`.
+
+Every candidate, forecast, and decision must be attributable enough to learn
+from later:
+
+- `strategy_version`, `thesis_id`, `evidence_refs`, and `feature_tags` link a
+  decision back to the research and rule that produced it.
+- `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, and
+  `calibration_bucket` make probability calibration measurable.
+- `resolution_criteria`, `close_time`, and `disconfirming_signals` define how
+  the forecast will be judged.
+
+Daily close must score forecast quality, not only summarize activity: resolved
+forecasts get Brier / hit-rate attribution; unresolved forecasts get
+closing-line-value or midpoint-drift attribution; fills get realized or
+mark-to-market P&L attribution. Reflection then updates `strategy/current.md`
+with the lesson: promote, demote, or keep testing hypotheses; adjust
+calibration, edge floors, sizing fractions, market filters, or correlation
+rules when evidence clears the anti-overfitting gates.
+
+Caveat: improvement is empirical, not guaranteed monotonic intelligence or
+profit. Sparse data, delayed resolutions, bad sources, market efficiency, and
+correlated mistakes can make a cycle less accurate. The agent must therefore
+record uncertainty, avoid changing rules on anecdotes except for immediate
+risk reductions, and never loosen human-owned guardrails by reflection.
+
 ## Skills vs Routines
 
 - **Routines** = scheduled triggers. Each `routines/*.md` file declares its
@@ -26,12 +57,12 @@ invoke and in what order. Do not improvise outside the routine flow.
 Polymarket is global and 24/7, but US news/liquidity dominates. **Four**
 scheduled routines per UTC day:
 
-| UTC | ET | Routine | Purpose |
-|---|---|---|---|
-| 04:00 | 23:00 (prev) | `routines/overnight-watch.md` | Asia/Pacific; light monitor, NAV, breaker |
-| 12:00 | 07:00 | `routines/research-window.md` | US wake-up; heaviest research pass, build watchlist |
-| 18:00 | 13:00 | `routines/trade-window.md` | Peak US activity; decisions + execution |
-| 22:00 | 17:00 | `routines/daily-close.md` | US close; recap, reflection, daily summary (Sunday: weekly recap) |
+| UTC   | ET           | Routine                       | Purpose                                                           |
+| ----- | ------------ | ----------------------------- | ----------------------------------------------------------------- |
+| 04:00 | 23:00 (prev) | `routines/overnight-watch.md` | Asia/Pacific; light monitor, NAV, breaker                         |
+| 12:00 | 07:00        | `routines/research-window.md` | US wake-up; heaviest research pass, build watchlist               |
+| 18:00 | 13:00        | `routines/trade-window.md`    | Peak US activity; decisions + execution                           |
+| 22:00 | 17:00        | `routines/daily-close.md`     | US close; recap, reflection, daily summary (Sunday: weekly recap) |
 
 Each scheduled routine is its own Claude Code cloud routine with its own cron.
 Missing a phase is detected by the next routine grepping the trade-log for the
@@ -106,7 +137,7 @@ recaps/              YYYY-MM-DD.md (daily) + YYYY-Www.md (weekly).
 ## Paper vs mainnet
 
 - `config/mode.json.network == "paper"` (default): real Polymarket market
-  data, synthetic fills at the observed mid-price *after* the 48h observation
+  data, synthetic fills at the observed mid-price _after_ the 48h observation
   window. During observation, log forecasts only.
 - `config/mode.json.network == "mainnet"`: real on-chain orders.
   `skills/trade/SKILL.md` is the **only** skill that may touch wallet secrets

@@ -33,6 +33,15 @@ require: `market_id`, `condition_id`, `token_id`, `outcome`, `side`,
 `price`, `shares`, `notional_usdc`, `fee_usdc`, `idempotency_key`,
 `order_id` (null in paper).
 
+Forecast events must also carry enough structure for later learning:
+`strategy_version`, `forecast_id`, `thesis_id`, `evidence_refs`,
+`feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`,
+`market_p`, `confidence`, `calibration_bucket`, `close_time`,
+`resolution_criteria`, and `disconfirming_signals`. Decision events must at
+minimum include `forecast_id`, `strategy_version`, `thesis_id`, and
+`feature_tags` when they originate from a forecast. Do not bury these fields
+only in markdown; reflection reads the JSONL first.
+
 ## Allowed `event_type` values (v1)
 
 `cycle_start`, `stale_lock_recovered`, `research_note`, `candidate_rank`,

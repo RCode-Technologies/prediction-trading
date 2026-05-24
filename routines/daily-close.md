@@ -31,10 +31,12 @@ On Sundays also generate the weekly recap.
 6. `skills/risk.nav()` + write `nav_snapshot` event via `skills/journal`.
 7. `skills/circuit-breaker.evaluate()` — **checkpoint 3**: after final
    nav_snapshot. If halted, surface in the recap below.
-8. `skills/recap` — write `recaps/YYYY-MM-DD.md` (daily).
+8. `skills/recap` — write `recaps/YYYY-MM-DD.md` (daily), including the
+   learning scorecard used by reflection.
    - **If Sunday:** also write `recaps/YYYY-Www.md` (weekly).
-9. `skills/reflect` — once per UTC date; may edit `strategy/current.md`
-   and snapshot to `strategy/history/`.
+9. `skills/reflect` — once per UTC date; convert the scorecard into a
+   strategy learning-state update when there is new evidence. May edit
+   `strategy/current.md` and snapshot to `strategy/history/`.
 10. `skills/notify` — send `daily_summary`. If Sunday, also send
     `weekly_recap`.
 11. `skills/journal` — emit `phase_completed`.
@@ -46,7 +48,8 @@ On Sundays also generate the weekly recap.
 - `recaps/YYYY-MM-DD.md` (always).
 - `recaps/YYYY-Www.md` (Sundays only).
 - `strategy/current.md` updated + `strategy/history/YYYY-MM-DD-vN.md` if
-  reflection edits.
+  reflection edits. The edit may be a measured learning-state update even if
+  no live trading rule changes.
 - Trade-log: `cycle_start`, `nav_snapshot`, `recap` (×1–2),
   `reflection`, `notification` (×1–2), `phase_completed`, `cycle_end`.
 

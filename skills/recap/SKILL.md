@@ -27,8 +27,16 @@ a `recap` event.
    - Halt events
    - NAV at start of day vs now (Δ%)
    - Open positions count + total cost basis + mark-to-market value
+   - Learning scorecard:
+     - resolved forecasts: count, hit rate, Brier score, optional log loss
+     - unresolved forecasts: midpoint drift and closing-line value since the
+       forecast, never counted as truth
+     - attribution by `strategy_version`, `thesis_id`, `feature_tags`, and
+       `source_providers` where available
+     - missing learning fields that blocked attribution
 
 3. **Write `recaps/YYYY-MM-DD.md`** with frontmatter:
+
    ```yaml
    ---
    kind: daily
@@ -37,10 +45,14 @@ a `recap` event.
    strategy_version: <vN>
    ---
    ```
+
    Body sections: **Summary**, **Activity by phase**, **P&L**,
-   **Open positions**, **Notes** (reflection hints if any).
+   **Open positions**, **Learning scorecard**, **Notes** (reflection hints if
+   any). The learning scorecard is the handoff to `skills/reflect`; do not
+   reduce it to prose if structured tables are possible.
 
 4. **Emit `recap` event** via `journal`:
+
    ```json
    {"event_type":"recap","kind":"daily","date":"<YYYY-MM-DD>","path":"recaps/<YYYY-MM-DD>.md","nav_usdc":<n>,"pnl_pct_24h":<p>}
    ```
@@ -62,10 +74,14 @@ a `recap` event.
    - Best call (max realized P&L) and worst call (min realized P&L)
    - Strategy versions used in window + number of reflection edits
    - Halt incidents
+   - Calibration by probability bucket and market class
+   - Hypotheses promoted, demoted, or still collecting evidence
+   - Decision quality: accepted vs rejected candidates and their later drift
 
 4. **Write `recaps/YYYY-Www.md`** (ISO week) with frontmatter `kind: weekly`,
    `iso_week: YYYY-Www`. Body: **Performance**, **Trade quality**,
-   **Strategy evolution**, **Risk events**, **Recommendations for human review**.
+   **Calibration**, **Strategy evolution**, **Risk events**,
+   **Recommendations for human review**.
 
 5. **Emit `recap` event** with `kind: weekly`.
 
