@@ -1,3 +1,3 @@
 [submodule "skills/polymarket"]
 	path = skills/polymarket
-	url = https://github.com/Polymarket/agent-skills
+	url = https://github.com/rcode-bot/polymarket-agent-skills
