@@ -66,56 +66,46 @@ Rolling 30d Brier vs market baseline per `source_providers` value.
 
 ## Smartness scorecard (rolling 30d)
 
-| metric | formula | direction |
-| --- | --- | --- |
-| `brier_agent`           | mean `(your_p - outcome)^2`                                  | lower better          |
-| `brier_market_p`        | mean `(market_p - outcome)^2` (same forecasts)               | baseline              |
-| `brier_skill`           | `brier_market_p - brier_agent`                               | positive = smarter    |
-| `calibration_slope`     | OLS slope of `outcome ~ your_p`                              | target ≈ 1.0          |
-| `calibration_intercept` | OLS intercept                                                | target ≈ 0.0          |
-| `auc`                   | rank-AUC of `your_p` vs outcome                              | higher better         |
-| `kl_vs_market`          | mean `KL(your_p ‖ market_p)`                                 | informative only      |
-| `drift_skill`           | fraction of unresolved fcsts whose midpoint moved toward `your_p` more than toward forecast-time `market_p` | positive = smarter |
-| `rejected_drift`        | mean midpoint drift on edge-floor rejects                    | calibrates edge floor |
+Schema computed by `skills/recap`, consumed by `skills/reflect`:
 
-Only score outcomes ∈ {0,1}. Per-source and per-tag slices fed to ledgers above.
+- `brier_agent` (mean `(your_p - outcome)^2`, lower better), `brier_market_p` (same on `market_p`, baseline), `brier_skill = brier_market_p - brier_agent` (positive = smarter).
+- `calibration_slope` / `calibration_intercept` — OLS of `outcome ~ your_p`, targets ≈ 1.0 / 0.0.
+- `auc` — rank-AUC of `your_p` vs outcome (higher better).
+- `kl_vs_market` — mean `KL(your_p ‖ market_p)`, informative only.
+- `drift_skill` — fraction of unresolved fcsts whose midpoint moved toward `your_p` more than toward forecast-time `market_p` (positive = smarter).
+- `rejected_drift` — mean midpoint drift on edge-floor rejects (calibrates edge floor).
+
+Only score outcomes ∈ {0,1}. Per-source/per-tag slices feed ledgers above.
 
 ## Convergent calibration update law
 
 Per bucket with `resolved_n >= 10`:
-
 ```
 shrink     = min(1.0, resolved_n / 30)
 adjustment = clamp(shrink * (hit_rate - bucket_midpoint), -0.08, +0.08)
 your_p     = clamp(raw_your_p + bucket_adjustment, 0.02, 0.98)
 ```
-
-Below `resolved_n=10`: `adjustment=0`, `status=collect`. Deterministic — any change to the formula is itself a strategy edit subject to the gate.
+`resolved_n < 10` → `adjustment=0`, `status=collect`. Changing this formula is itself a strategy edit (gate applies).
 
 ## Reflection-quality gate
 
-Before writing v(N+1):
-
-1. `brier_skill_before` on trailing 14d under current strategy.
-2. Re-score same window with proposed v(N+1) calibration + feature-tag + source penalties → `brier_skill_after`.
-3. If `brier_skill_after < brier_skill_before - 0.005`: refuse. Emit `reflection` `edited:false`, `reason:"regression_blocked"`, append proposal to **Pending evidence** (no version bump, no snapshot).
-4. **Risk-tightening edits** (severe miss, correlation surprise, stale-mark failure, source-quality failure) bypass the gate.
+Refuse v(N+1) if `brier_skill_after < brier_skill_before - 0.005` on trailing 14d resolved (simulated under proposed calibration + feature-tag + source penalties). Emit `reflection edited:false reason:"regression_blocked"`, append proposal to **Pending evidence**, no snapshot. **Risk-tightening edits** (severe miss, correlation surprise, stale-mark failure, source-quality failure) bypass. Procedure: `skills/reflect`.
 
 ## Auto-revert
 
-`last_good_version` = highest historical version whose 30d `brier_skill > max_brier_skill - 0.01`. If last 3 `reflection` events all have `brier_skill < last_good_version.brier_skill`: next reflection **must** revert (copy snapshot to `current.md`, bump version, snapshot the failed run, emit `reflection` `edited:true`, `reason:"auto_revert"`, `reverted_to:"<vN>"`).
+`last_good_version` = highest historical version whose 30d `brier_skill > max_brier_skill - 0.01`. If last 3 `reflection` events all have `brier_skill < last_good_version.brier_skill`, next reflection **must** revert: copy snapshot to `current.md`, bump version, snapshot failed run, emit `reflection edited:true reason:"auto_revert" reverted_to:"<vN>"`.
 
 ## Exploration policy
 
-Demote sets `next_retry_date = today + 14d`. On/after that: → `status:probation`, `sizing_mult:0.5`, clear `next_retry_date`. After 5 probation resolutions: if `brier_skill > 0` → `status:watch`, `sizing_mult:1.0`; else re-demote with `next_retry_date = today + 14d`.
+Demote → `next_retry_date = today + 14d`. On/after that → `status:probation`, `sizing_mult:0.5`, clear date. After 5 probation resolutions: `brier_skill > 0` → `status:watch`, `sizing_mult:1.0`; else re-demote `+14d`.
 
 ## Source-quality penalty
 
-If `brier_provider > brier_market_p + 0.03` over `resolved_n >= 8`: `penalty:0.5`, `status:penalized` (forecasts citing source get `confidence *= 0.5` in sizing). Lifts after 5 resolved cite-events restore `brier_provider <= brier_market_p`.
+`brier_provider > brier_market_p + 0.03` over `resolved_n >= 8` → `penalty:0.5`, `status:penalized` (sizing applies `confidence *= 0.5` to citing forecasts). Lifts after 5 resolved cite-events restore `brier_provider <= brier_market_p`.
 
 ## Smartness threshold (human hint)
 
-OLS slope of daily `brier_skill` over 30d. Negative for 14 consecutive UTC dates → reflection calls `risk.surface_recommendation()` with candidate tightenings (narrower filter, higher edge floor, smaller `strategy_frac`). Reflection does NOT apply them — humans own guardrails.
+OLS slope of daily `brier_skill` over 30d negative for 14 consecutive UTC dates → reflection calls `risk.surface_recommendation()` with candidate tightenings (narrower filter, higher edge floor, smaller `strategy_frac`). Reflection does NOT apply them — humans own guardrails.
 
 ## Reflection notes
 

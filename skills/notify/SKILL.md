@@ -9,11 +9,9 @@ outputs: HTTP POST to api.telegram.org, notification event
 
 Only outbound human channel. Never block the cycle.
 
-## How Telegram is invoked (read before anything else)
+## How Telegram is invoked
 
-There is **no Telegram MCP server, no `mcp__telegram__*` tool, no plugin integration**, and there will never be one. Telegram is reached by plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>` using the `Bash` tool. The `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` env vars are injected by the runtime (ADR 0004) and are the entire integration surface.
-
-**Do not refuse a notify request on the grounds that "no Telegram integration is available."** If `[ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]` returns true in `Bash`, you have everything you need — run the `curl` in step 4a/4b. If either var is empty, follow the missing-creds rule (silent skip in paper, `preflight_failed` in mainnet), but never propose Slack/Drive/"showing contents here" as a substitute. Telegram is the contract; alternative channels are out of scope.
+Telegram = plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>` via `Bash`. No MCP tool exists. Env vars `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` are injected by the runtime (ADR 0004) — if both present, run step 4a/4b; if either empty, apply the missing-creds rule below. Never substitute Slack/Drive/inline display.
 
 ## Suppression rules
 

@@ -40,9 +40,7 @@ Missed-phase detection: next routine greps trade-log for prior phase's `phase_co
 
 ## Self-learning contract
 
-Every forecast/decision must carry: `strategy_version`, `forecast_id`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, `calibration_bucket`, `close_time`, `resolution_criteria`, `disconfirming_signals`.
-
-`skills/recap` writes daily scorecards (Brier, calibration, AUC, KL, drift, per-source, per-tag). `skills/reflect` consumes them, applies the smartness gates in `strategy/current.md` (convergent calibration law, reflection-quality gate, auto-revert, exploration policy, source-quality penalty), and may edit `strategy/current.md`. Improvement is empirical, not guaranteed.
+Every forecast/decision carries attribution fields (canonical list: `skills/journal`). `skills/recap` writes daily scorecards; `skills/reflect` consumes them, applies the smartness gates in `strategy/current.md`, and may edit `strategy/current.md`. Improvement is empirical, not guaranteed.
 
 ## Paper vs mainnet
 
@@ -64,7 +62,7 @@ Check presence only: `[ -n "${VAR:-}" ]`. Never print, log, echo, or commit valu
 
 ## External integrations are shell, not MCP
 
-All external systems the agent touches — Telegram, Polymarket CLOB, research APIs, RPC nodes — are reached via `Bash` (curl, the polymarket Python SDK in the submodule, `git`). There are **no** MCP servers, plugin tools, or `mcp__*` integrations in the agent's contract, and the agent must not behave as if there could be. If a skill's steps include a `curl`/SDK invocation and the corresponding env vars are present, that is the integration — execute it. Refusing a routine on the grounds that "no <vendor> integration is available in this environment" is a contract violation: re-read the skill and run its shell commands instead. Alternative channels (Slack, Drive, "display the file here") are never an acceptable substitute for the integration the skill specifies.
+All external systems (Telegram, Polymarket CLOB, research APIs, RPC) are reached via `Bash` — `curl`, the polymarket Python SDK in the submodule, `git`. No `mcp__*` tools exist for this agent. If a skill specifies a `curl`/SDK call and the env vars are present, execute it. Never refuse a step on "no <vendor> integration available" grounds, and never substitute Slack/Drive/inline display for the specified channel.
 
 ## Token budget
 
