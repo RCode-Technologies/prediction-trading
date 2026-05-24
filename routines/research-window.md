@@ -13,12 +13,13 @@ US wake-up. Pull overnight signals (EU close, Asia resolutions, weekend polling)
 
 ## Steps
 
-1. `boot`
-2. `circuit-breaker.evaluate()` — cp1. Halted → skip to 6 (daily summary if due, persist, exit).
-3. `research` — angle: "what shifted overnight (EU close / Asia resolutions / weekend polling / late sports)?". Budget ≤3 sources (external keys → native WebSearch/WebFetch → Polymarket only).
-4. `markets` — build/refresh watchlist with fresh prices. May consume 1 Gamma source from the shared 3-source bucket.
-5. `journal` — `research_note`, `candidate_rank`, `phase_completed`.
-6. `persist`.
+1. **Set reasoning effort to MAX** — this is the day's most consequential routine; the watchlist built here drives every downstream trade-window decision. Use the highest thinking effort available (extra-high / max). Do not start any other step until this is set.
+2. `boot`
+3. `circuit-breaker.evaluate()` — cp1. Halted → skip to 7 (daily summary if due, persist, exit).
+4. `research` — angle: "what shifted overnight (EU close / Asia resolutions / weekend polling / late sports)?". Budget ≤3 sources (external keys → native WebSearch/WebFetch → Polymarket only).
+5. `markets` — build/refresh watchlist with fresh prices. May consume 1 Gamma source from the shared 3-source bucket.
+6. `journal` — `research_note`, `candidate_rank`, `phase_completed`.
+7. `persist`.
 
 ## Output artifacts
 
