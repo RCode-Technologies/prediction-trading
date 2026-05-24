@@ -4,12 +4,14 @@ Stateless. Repo = only memory. **A cycle that does not push is unsuccessful.**
 
 ## Boot
 
-Every routine starts with `skills/boot` (sync, validate, lock, halt check, emit `cycle_start`). Ends with `skills/persist` (validate, release lock, commit, pull --rebase, push, verify `HEAD == origin/HEAD`).
+Every routine starts with `skills/boot` (sync, validate, lock, halt check, emit `cycle_start`). Ends with `skills/persist` (validate, release lock, emit `cycle_end`, create one routine commit, pull --rebase, push, verify `HEAD == origin/HEAD`).
 
 ## Skills vs routines
 
 - `routines/*.md` — cron-scheduled playbooks (cron in YAML frontmatter).
 - `skills/<name>/SKILL.md` — capabilities loaded on demand by routines.
+
+`CLAUDE.md` is a Claude-only shim. Keep it to the smallest possible redirect to this file; shared instructions live here or in model-agnostic repo docs.
 
 Enter through one routine. Follow its steps. Load each skill's `SKILL.md` only when the step says to. Do not improvise.
 
@@ -51,7 +53,8 @@ Every forecast/decision must carry: `strategy_version`, `forecast_id`, `thesis_i
 ## Persistence rules
 
 - **`main` is the only branch.** The agent commits to `main` and pushes directly to `origin main` — no feature branches, no PRs, no review gate. Every routine ends with `HEAD == origin/main`.
-- Commits via Conventional Commits. Never `--force`, never `--no-verify`.
+- **One scheduled routine = one pushed routine commit** whenever no mainnet pre-submit safety commit is required. Put detail in the Conventional Commit body, not in extra bookkeeping commits.
+- Routine commits use Conventional Commits. Automated routine pushes never use plain `--force` or `--no-verify`. Human-directed history consolidation may use `--force-with-lease` only after verifying a clean worktree and an unchanged remote lease.
 - `skills/persist` does `git push --dry-run origin main` preflight; auth failure → halt.
 - Mainnet idempotency: `skills/trade` pushes `decision` with `idempotency_key` **before** SDK submit. Retried runs detect the key and skip.
 

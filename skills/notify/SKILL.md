@@ -17,8 +17,10 @@ There is **no Telegram MCP server, no `mcp__telegram__*` tool, no plugin integra
 
 ## Suppression rules
 
-- **Paper:** `daily_summary` + `circuit_breaker` only. Skip per-trade.
-- **Mainnet:** `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`.
+- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `circuit_breaker`. Skip per-trade.
+- **Mainnet:** `routine_summary`, `discovery_summary`, `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`.
+
+Keep automated Telegram concise. If a routine opened no positions and has no human action item, prefer a one-line `routine_summary` over a verbose recap.
 
 Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
 - Paper → silently skip.
@@ -56,7 +58,9 @@ Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
 
 ## Payload shapes
 
-- `daily_summary`: `[<mode>] Daily summary <YYYY-MM-DD>` + NAV (Δ24h%), cycles N/4, forecasts/paper_fills/mainnet_fills counts, open positions + cash, top movers.
+- `routine_summary`: one line for no-action runs, e.g. `[<mode>] overnight_watch: no open positions; no trades opened.` Include NAV only if it helps explain a halt or cash-only state.
+- `discovery_summary`: sent by research/discovery routines. If `candidates_passing_min_edge == 0`, keep it direct: `[<mode>] research_window: no bettable candidates passed checks. Watchlist <N>; leads: <up to 3 short thesis labels or none>.` If candidates passed checks, summarize up to 3 with question, side, edge bps, liquidity, close time, and thesis id, then add `Review: resolution, liquidity, correlation, freshness.`
+- `daily_summary`: `[<mode>] Daily summary <YYYY-MM-DD>` + NAV (Δ24h%), cycles N/4, forecasts/paper_fills/mainnet_fills counts, open positions + cash, top movers. If no open positions and no fills, compress to one line: `[<mode>] Daily <YYYY-MM-DD>: NAV <n>; no open positions; no fills; cycles <n>/4.`
 - `weekly_recap`: `[<mode>] Weekly recap <YYYY-Www>` + NAV (Δ7d%), total fills, hit rate, Brier, best/worst call, strategy version.
 - `trade_placed` (mainnet): market, outcome, side BUY, price, shares, notional, order_id.
 - `circuit_breaker`: `[<mode>] CIRCUIT BREAKER — trading halted` + reason, triggered_at, 24h P&L%, "Resume requires manual edit of state/halts.json".

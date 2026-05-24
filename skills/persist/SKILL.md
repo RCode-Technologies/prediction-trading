@@ -1,13 +1,15 @@
 ---
 name: persist
-description: End-of-cycle bookkeeping. Atomic writes, validation, lock release, git commit + pull/rebase + push. **A cycle that does not push is unsuccessful.**
+description: End-of-cycle bookkeeping. Atomic writes, validation, lock release, one routine commit + pull/rebase + push. **A cycle that does not push is unsuccessful.**
 inputs: pending changes in working tree, cycle_id
-outputs: HEAD SHA pushed, lock released, cycle_end event
+outputs: HEAD pushed, lock released, cycle_end event
 ---
 
 # Persist
 
-Push is the **only** success criterion. The agent pushes directly to `main` — no PRs, no feature branches. Verify `HEAD == origin/main` and write SHA to `cycle-index.json.last_pushed_commit`.
+Push is the **only** success criterion. The agent pushes directly to `main` — no PRs, no feature branches. Verify `HEAD == origin/main`. Scheduled routines produce one pushed Conventional Commit whenever no mainnet pre-submit safety commit is required.
+
+Do **not** create follow-up bookkeeping commits. A commit cannot contain its own final SHA without another commit; clean one-commit routine history is preferred over exact in-repo `last_pushed_commit` tracking.
 
 ## Git identity (idempotent — every cycle)
 
@@ -43,17 +45,21 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
    ```
    Append `{ts, nav_usdc}` to `cycle-index.json.nav_snapshots` (cap 1000).
 
-3. **`cycle-index.json`:** set `last_cycle_id`, `last_started_at`, `last_completed_at`. Leave `last_pushed_commit` for step 7.
+3. **`cycle-index.json`:** set `last_cycle_id`, `last_started_at`, `last_completed_at`. Do not mutate `last_pushed_commit` for this cycle; it is deprecated for exact tracking because updating it would require a second commit.
 
 4. **Release lock** (atomic): `{schema_version:1, active:false, cycle_id:null, started_at:null, expires_at:null}`.
 
 5. **`cycle_end`** via `journal`.
 
-6. **Commit** (Conventional Commits):
+6. **Commit once** (Conventional Commits). Keep the subject compact and put useful detail in the body:
    ```bash
    git add -A
-   git commit -m "<type>(<scope>): <subject> [cycle <cid>]"
+   git commit \
+     -m "<type>(<scope>): <subject> [cycle <cid>]" \
+     -m "Phase: <phase>" \
+     -m "Details: <concise summary of artifacts, decisions, notifications>"
    ```
+   Preferred scopes: `research`, `trade`, `recap`, `cycle`, `strategy`, `halt`. Use `chore(cycle): <phase> no-op [cycle <cid>]` when the run only checked state and opened no positions.
 
 7. **Pull/rebase/push:**
    ```bash
@@ -71,9 +77,11 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
    ```
    Mismatch → `persist_conflict` + notify + non-zero exit.
 
-9. **Write SHA** to `cycle-index.json.last_pushed_commit`. Follow-up commit OK: `chore(cycle): record last_pushed_commit [cycle <cid>]`.
+9. **Stop.** Do not amend or create a follow-up `last_pushed_commit` commit. If an operator needs the pushed SHA, use `git rev-parse origin/main` outside tracked state.
 
 ## Mainnet pre-submit push (from `trade`)
+
+This is the safety exception to one-commit routine history. A mainnet order intent must be durable before SDK submission; the routine may therefore have a pre-submit decision commit plus the final persist commit.
 
 ```bash
 git add state/trade-log.jsonl
@@ -87,4 +95,4 @@ Push fail → `trade` aborts before SDK call (order not submitted).
 
 - Push unresolvable → unsuccessful cycle. Idempotency keys on pre-submit decisions protect mainnet duplicates.
 - State corrupted after a routine write → `git checkout -- <file>` if possible, log, notify, exit.
-- Force-push attempted → forbidden, abort.
+- Plain force-push attempted by an automated routine → forbidden, abort. Human-directed history consolidation may use `--force-with-lease` per `AGENTS.md`.

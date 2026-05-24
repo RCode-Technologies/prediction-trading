@@ -40,7 +40,7 @@ Shared counter across `skills/research` + `skills/markets`. Includes native WebS
 
 ## Push = success
 
-Every cycle: commit, pull --rebase, push. Never `--force`. No push = `persist_conflict` + notify + non-zero exit.
+Every scheduled cycle: one Conventional Commit, pull --rebase, push. Routine pushes never use plain `--force` or `--no-verify`. Human-directed history consolidation may use `--force-with-lease` only after verifying a clean worktree and unchanged remote lease. No push = `persist_conflict` + notify + non-zero exit.
 
 ## Mainnet gate
 

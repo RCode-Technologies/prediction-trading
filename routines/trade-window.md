@@ -21,8 +21,9 @@ Peak US activity. Morning watchlist is mature; midday news priced in. **Primary 
 6. `sizing` per candidate that passes min-edge. ≤1 mainnet order/cycle. Paper has no cap but practical ≤3.
 7. `trade` — paper or mainnet branch. Pre-submit push for mainnet. Internal failures (mainnet cancel fail, post-submit push fail) → `trade` calls `circuit-breaker.halt(reason)` directly.
 8. `circuit-breaker.evaluate()` — cp3 (post-fill, portfolio updated).
-9. `journal.phase_completed`.
-10. `persist`.
+9. `notify` — `discovery_summary` when no mainnet `trade_placed` notification already explains the action. If no candidate passed checks, say so simply. If candidates passed, summarize up to 3 with the review checklist from `skills/notify`.
+10. `journal.phase_completed`.
+11. `persist`.
 
 ## Source budget
 
@@ -38,9 +39,12 @@ Peak US activity. Morning watchlist is mature; midday news priced in. **Primary 
 
 - Paper: per-trade suppressed; daily summary covers them.
 - Mainnet: `trade_placed` per fill.
+- Paper + mainnet: `discovery_summary` for no-trade/no-fill outcomes or passed-check candidates that need human review.
 
 ## Commit
 
 - Paper: `feat(trade): paper_fill <slug> [cycle <cid>]`
 - Mainnet: `feat(trade): mainnet_fill <slug> [cycle <cid>]`
 - No trade: `chore(cycle): trade_window no-op [cycle <cid>]`
+
+Use one routine commit with a concise body covering candidates considered, pass/fail count, fills, and notification status. Mainnet pre-submit safety commits remain the only exception.

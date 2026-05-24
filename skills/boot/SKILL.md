@@ -28,7 +28,7 @@ outputs: cycle_id, lock acquired, validated state, halt status
 
 5. **Halts.** `halts.json.active==true` → return halt flag to caller; no phase work.
 
-6. **Observation transition.** If `mode.observation_only==true` and `now >= observation_started_at + observation_hours * 3600` → set `observation_only=false`, commit `chore(mode): observation window ended`.
+6. **Observation transition.** If `mode.observation_only==true` and `now >= observation_started_at + observation_hours * 3600` → set `observation_only=false`. Do **not** commit here; `persist` includes this state change in the routine's single end-of-cycle commit.
 
 7. **Append `cycle_start`:**
    ```json
