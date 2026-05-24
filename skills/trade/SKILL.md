@@ -42,7 +42,7 @@ Never infer eligibility, never VPN, never bypass platform restrictions.
     ```bash
     git add state/trade-log.jsonl
     git commit -m "feat(decision): pre-submit <idempotency_key> [cycle <cid>]"
-    git pull --rebase && git push
+    git pull --rebase origin main && git push origin main
     ```
     Push fail → `preflight_failed reason:"pre_submit_push_failed"`, no submit.
 

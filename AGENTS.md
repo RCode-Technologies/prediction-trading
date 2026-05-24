@@ -50,8 +50,9 @@ Every forecast/decision must carry: `strategy_version`, `forecast_id`, `thesis_i
 
 ## Persistence rules
 
+- **`main` is the only branch.** The agent commits to `main` and pushes directly to `origin main` — no feature branches, no PRs, no review gate. Every routine ends with `HEAD == origin/main`.
 - Commits via Conventional Commits. Never `--force`, never `--no-verify`.
-- `skills/persist` does `git push --dry-run` preflight; auth failure → halt.
+- `skills/persist` does `git push --dry-run origin main` preflight; auth failure → halt.
 - Mainnet idempotency: `skills/trade` pushes `decision` with `idempotency_key` **before** SDK submit. Retried runs detect the key and skip.
 
 ## Secrets

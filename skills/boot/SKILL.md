@@ -1,6 +1,6 @@
 ---
 name: boot
-description: Wake-up sequence for every routine — sync memory branch, validate state, acquire lock, check halts. Failure here = no other skill runs.
+description: Wake-up sequence for every routine — sync main, validate state, acquire lock, check halts. Failure here = no other skill runs.
 inputs: caller routine name, phase tag
 outputs: cycle_id, lock acquired, validated state, halt status
 ---
@@ -9,7 +9,7 @@ outputs: cycle_id, lock acquired, validated state, halt status
 
 ## Steps
 
-1. **Sync.** `git fetch origin && git checkout <default-branch> && git pull --rebase`. Failure → exit non-zero (no log line possible).
+1. **Sync.** `git fetch origin && git checkout main && git pull --rebase origin main`. The agent operates on `main` only — no feature branches, no PRs. Failure → exit non-zero (no log line possible).
 
 2. **`cycle_id`** = `YYYYMMDDTHHMMSSZ-<8 lower-hex>` UTC. E.g. `20260524T133000Z-3f9c8a21`.
 

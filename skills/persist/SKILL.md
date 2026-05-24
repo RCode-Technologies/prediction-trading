@@ -7,7 +7,7 @@ outputs: HEAD SHA pushed, lock released, cycle_end event
 
 # Persist
 
-Push is the **only** success criterion. Verify `HEAD == origin/<branch>` and write SHA to `cycle-index.json.last_pushed_commit`.
+Push is the **only** success criterion. The agent pushes directly to `main` — no PRs, no feature branches. Verify `HEAD == origin/main` and write SHA to `cycle-index.json.last_pushed_commit`.
 
 ## Git identity (idempotent — every cycle)
 
@@ -19,7 +19,7 @@ git config --global user.name  "${GIT_AUTHOR_NAME:-Polymarket Trading Agent}"
 ## Push preflight (before first commit)
 
 ```bash
-git push --dry-run 2>&1 | head -5
+git push --dry-run origin main 2>&1 | head -5
 ```
 
 Auth failure (`Permission denied`, `could not read Username`, `403`, `Repository moved`) → `circuit-breaker.halt("push_permission_missing")`. Fail fast.
@@ -57,16 +57,16 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
 
 7. **Pull/rebase/push:**
    ```bash
-   git pull --rebase
-   git push
+   git pull --rebase origin main
+   git push origin main
    ```
    Never `--force`, never `--no-verify`. On rejection: retry pull/rebase **once**. Still failing → `persist_conflict` + notify + non-zero exit. Stale lock recovers next cycle.
 
 8. **Verify push:**
    ```bash
-   git fetch origin
+   git fetch origin main
    LOCAL=$(git rev-parse HEAD)
-   REMOTE=$(git rev-parse "origin/$(git rev-parse --abbrev-ref HEAD)")
+   REMOTE=$(git rev-parse origin/main)
    [ "$LOCAL" = "$REMOTE" ] || exit 1
    ```
    Mismatch → `persist_conflict` + notify + non-zero exit.
@@ -78,7 +78,7 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
 ```bash
 git add state/trade-log.jsonl
 git commit -m "feat(decision): pre-submit <idempotency_key> [cycle <cid>]"
-git pull --rebase && git push
+git pull --rebase origin main && git push origin main
 ```
 
 Push fail → `trade` aborts before SDK call (order not submitted).

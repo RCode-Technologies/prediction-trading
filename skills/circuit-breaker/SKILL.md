@@ -73,7 +73,7 @@ Agent **never** clears. Human edits `halts.json`:
 ```bash
 jq '.active=false | .reason=null | .triggered_at=null | .cycle_id=null' \
    state/halts.json > state/halts.json.tmp && mv state/halts.json.tmp state/halts.json
-git add state/halts.json && git commit -m "chore(halt): cleared by <handle>" && git push
+git add state/halts.json && git commit -m "chore(halt): cleared by <handle>" && git push origin main
 ```
 
 ## Failure modes
