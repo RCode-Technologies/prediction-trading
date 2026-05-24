@@ -11,4 +11,4 @@ newest day on top. The agent maintains this file as part of
 
 ## 2026-05-24
 
-(no notes yet)
+| 2026-05-24T22:10Z | overnight-shifts | what shifted overnight (Gabbard DNI resignation, Trump Iran "no rush", Machado return) | tbd |
