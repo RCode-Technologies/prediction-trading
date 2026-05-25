@@ -36,7 +36,7 @@ Full ref: `skills/polymarket/SKILL.md` (on demand only).
    ```
    Both sides + ≤15 min → `midpoint = (best_bid + best_ask) / 2`. One side + ≤15 min → last trade price. Else `stale:true`.
 
-6. **Candidate record fields:** `market_id`, `condition_id`, `token_id` (BUY outcome), `outcome`, `side:"BUY"`, `best_bid`, `best_ask`, `midpoint`, `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `disconfirming_signals`.
+6. **Candidate record fields:** `market_id`, `condition_id`, `token_id` (BUY outcome), `outcome`, `market_question`, `event_slug` (both from Gamma — needed downstream so `notify trade_placed` can render the Polygonscan + Polymarket links without a re-query), `side:"BUY"`, `best_bid`, `best_ask`, `midpoint`, `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `disconfirming_signals`.
 
 7. **Write file** caller named (`watchlist.md` pre-market, `candidates.md` market-open). Frontmatter + table.
 

@@ -55,7 +55,8 @@ Never infer eligibility, never VPN, never bypass platform restrictions.
     {"event_type":"mainnet_order_submitted","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_usdc":<est>,"idempotency_key":"<key>","order_id":"<sdk_id>"}
     ```
 
-14. **Poll fill** briefly (10-30 s). Emit `mainnet_fill` with **actual** `shares`, `price`, `fee_usdc`, `order_id`.
+14. **Poll fill** briefly (10-30 s) via `client.get_trades(market=<market_id>)`. Emit `mainnet_fill` with **actual** `shares`, `price`, `fee_usdc`, `order_id`, plus `transaction_hash` (Polygon settlement tx, hex `0x…` — the value the human-facing explorer link points at), and the market's cached `event_slug` + `market_question` (captured from Gamma API at decision time). These three feed `notify trade_placed`; missing `transaction_hash` triggers the degraded "settlement pending" template (see [../notify/templates/trade_placed.md](../notify/templates/trade_placed.md)).
+14a. **Notify `trade_placed`** with the `mainnet_fill` payload — one message per fill, never aggregate across cycles.
 
 15. **Partial fill:** SDK cancel remainder. Cancel fails → `circuit-breaker.halt("mainnet_cancel_failed")`, notify, persist, exit.
 

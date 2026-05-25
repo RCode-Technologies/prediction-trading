@@ -28,7 +28,7 @@ Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
 
 1. Resolve which kinds to send based on mode + caller request.
 2. **`daily_summary` dedupe.** Grep trade-log for prior `notification kind:"daily_summary"` with `date:<today UTC>` → skip if present.
-3. **Compose payload** (markdown-safe; never include secrets, wallet addrs, raw env vars, token-bearing URLs).
+3. **Compose payload.** Load **only** the template file matching the `kind` being sent (see § Templates). Substitute placeholders; sanitize external content (`<market>`, `<reason>`, leads) for unbalanced `*` / `_` / `` ` ``. Never include secrets, wallet addrs, raw env vars, or token-bearing URLs.
 4. **Pick transport by size.** Telegram `sendMessage` hard-caps `text` at **4096 chars** — longer payloads return `400 Bad Request: message is too long`. Measure the composed payload with `printf '%s' "$payload" | wc -c`.
    - **≤4096 chars** → `sendMessage` (step 4a).
    - **>4096 chars or sending a file from the repo** (recap, README, scorecard, log excerpt) → `sendDocument` with the content as a file attachment (step 4b). Do **not** try to chunk and emit multiple `sendMessage` calls — out-of-order delivery and per-chunk markdown parsing both break readability.
@@ -54,17 +54,30 @@ Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
    {"event_type":"notification","kind":"<kind>","transport":"sendMessage|sendDocument","date":"<YYYY-MM-DD>"}
    ```
 
-## Payload shapes
+## Templates
 
-- `routine_summary`: one line for no-action runs, e.g. `[<mode>] overnight_watch: no open positions; no trades opened.` Include NAV only if it helps explain a halt or cash-only state.
-- `discovery_summary`: sent by research/discovery routines. If `candidates_passing_min_edge == 0`, keep it direct: `[<mode>] research_window: no bettable candidates passed checks. Watchlist <N>; leads: <up to 3 short thesis labels or none>.` If candidates passed checks, summarize up to 3 with question, side, edge bps, liquidity, close time, and thesis id, then add `Review: resolution, liquidity, correlation, freshness.`
-- `daily_summary`: `[<mode>] Daily summary <YYYY-MM-DD>` + NAV (Δ24h%), cycles N/4, forecasts/paper_fills/mainnet_fills counts, open positions + cash, top movers. If no open positions and no fills, compress to one line: `[<mode>] Daily <YYYY-MM-DD>: NAV <n>; no open positions; no fills; cycles <n>/4.`
-- `weekly_recap`: `[<mode>] Weekly recap <YYYY-Www>` + NAV (Δ7d%), total fills, hit rate, Brier, best/worst call, strategy version.
-- `trade_placed` (mainnet): market, outcome, side BUY, price, shares, notional, order_id.
-- `circuit_breaker`: `[<mode>] CIRCUIT BREAKER — trading halted` + reason, triggered_at, 24h P&L%, "Resume requires manual edit of state/halts.json".
-- `preflight_failed`: which check + brief reason (no secrets).
-- `persist_conflict`: branch + last commit attempted.
-- `phase_missed`: which phase + last successful ts.
+One file per kind/variant — **load exactly the one you need, never preload the directory**. Resolve the variant from the data in hand (e.g. count candidates before choosing between the empty / candidates `discovery_summary` files); load the file; substitute; send.
+
+| Kind                | Variant / when                | Template                                                                                |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------- |
+| `routine_summary`   | no-action one-liner           | [templates/routine_summary.md](templates/routine_summary.md)                            |
+| `discovery_summary` | 0 candidates                  | [templates/discovery_summary_empty.md](templates/discovery_summary_empty.md)            |
+| `discovery_summary` | 1–3 candidates                | [templates/discovery_summary_candidates.md](templates/discovery_summary_candidates.md)  |
+| `daily_summary`     | no positions + no fills       | [templates/daily_summary_empty.md](templates/daily_summary_empty.md)                    |
+| `daily_summary`     | positions open or fills today | [templates/daily_summary_full.md](templates/daily_summary_full.md)                      |
+| `weekly_recap`      | Sundays                       | [templates/weekly_recap.md](templates/weekly_recap.md)                                  |
+| `trade_placed`      | mainnet only, per fill        | [templates/trade_placed.md](templates/trade_placed.md)                                  |
+| `circuit_breaker`   | any breaker trip              | [templates/circuit_breaker.md](templates/circuit_breaker.md)                            |
+| `preflight_failed`  | trade preflight gate          | [templates/preflight_failed.md](templates/preflight_failed.md)                          |
+| `persist_conflict`  | push rejected after retry     | [templates/persist_conflict.md](templates/persist_conflict.md)                          |
+| `phase_missed`      | per missed phase              | [templates/phase_missed.md](templates/phase_missed.md)                                  |
+
+### Markdown safety (applies to every template)
+
+- Balance every `*`, `_`, `` ` ``. Unbalanced → `400 Bad Request: can't parse entities`.
+- No nested formatting (no bold inside code, no code inside bold).
+- Wrap identifiers / paths / mode tag in backticks so `_` doesn't parse as italic.
+- External content (`<market>`, `<reason>`, leads) is untrusted: strip or backtick-wrap the four chars above before substitution.
 
 ## Failure modes
 
