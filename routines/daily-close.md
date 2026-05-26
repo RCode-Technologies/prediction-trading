@@ -46,8 +46,4 @@ US close. Crystallize day's signals. Reflect, recap, daily Telegram. Sundays: al
 
 ## Commit
 
-- `feat(recap): daily <YYYY-MM-DD> [cycle <cid>]`
-- Sun: `feat(recap): daily + weekly <YYYY-Www> [cycle <cid>]`
-- If strategy edited, keep recap + strategy artifacts in the same routine commit and prefer: `feat(strategy): reflect to v<N+1> [cycle <cid>]`
-
-Use one routine commit with a concise body covering recap paths, reflection result, notifications, and whether positions remain open.
+Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`daily-close` rows). If reflection edited `strategy/current.md`, keep recap + strategy artifacts in the same routine commit and prefer the `feat(strategy)` subject. Body: recap paths, reflection result, notifications, open positions.

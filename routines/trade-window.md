@@ -58,10 +58,4 @@ Peak US activity. Morning watchlist is mature; midday news priced in. **Primary 
 
 ## Commit
 
-- Paper fill(s): `feat(trade): paper_fill <slug> [cycle <cid>]`
-- Mainnet fill: `feat(trade): mainnet_fill <slug> [cycle <cid>]`
-- Exploration-only (no exploit fills, ≥3 forecasts): `feat(trade): explore_only <N>fcsts [cycle <cid>]`
-- Mixed: `feat(trade): exploit<N>+explore<M> [cycle <cid>]`
-- Forecast floor missed (failure): `fix(cycle): null_cycle forecast_floor_missed [cycle <cid>]`
-
-Use one routine commit with a concise body covering slate composition, fills, and notification status. Mainnet pre-submit safety commits remain the only exception.
+Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`trade-window` rows). Body: slate composition, fills, notifications. One routine commit; mainnet pre-submit safety commits are the only exception.

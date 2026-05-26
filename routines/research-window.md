@@ -71,8 +71,4 @@ Send `discovery_summary` in paper and mainnet (concise: slate composition `N_exp
 
 ## Commit
 
-- Normal: `feat(research): window <YYYY-MM-DD> [cycle <cid>]`
-- Universe refresh + explore-only: `feat(research): window explore_only <N>fcsts [cycle <cid>]`
-- Floor missed: `fix(cycle): null_cycle <reason> [cycle <cid>]`
-
-Use a short commit body for slate composition, sources used, and notification status. Do not create a follow-up bookkeeping commit.
+Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`research-window` rows). Body: slate composition, sources used, notification status. One routine commit.

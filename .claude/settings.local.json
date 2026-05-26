@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(git add *)",
-      "Bash(git cherry-pick *)"
+      "Bash(git cherry-pick *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)"
     ]
   },
   "enableAllProjectMcpServers": false,

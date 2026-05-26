@@ -40,5 +40,4 @@ Only: one-line `routine_summary` for no-position/no-trade runs, `circuit_breaker
 
 ## Commit
 
-- No trade: `chore(cycle): overnight_watch [cycle <cid>]`
-- Trade fired: `feat(trade): overnight opportunistic <slug> [cycle <cid>]`
+Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`overnight-watch` rows).

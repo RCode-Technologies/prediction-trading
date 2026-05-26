@@ -68,24 +68,19 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
 
 5. **`cycle_end`** via `journal`.
 
-6. **Commit once** (Conventional Commits / commitlint — **canonical rules in `AGENTS.md` § Commit message standard**; this is a HARD contract). Keep the subject compact (≤72 chars including `[cycle <cid>]`) and put useful detail in the body:
+6. **Commit once.** Load `skills/commit/SKILL.md` for the canonical message format (types, scopes, subject rules, routine→subject table). Compose subject + body per that contract and run:
    ```bash
    git add -A
-   git commit \
-     -m "<type>(<scope>): <subject> [cycle <cid>]" \
-     -m "Phase: <phase>" \
-     -m "Details: <concise summary of artifacts, decisions, notifications>"
+   git commit -m "<formatted subject + body per skills/commit>"
    ```
-   Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `style`, `build`, `ci`, `revert`. Allowed scopes: `cycle`, `research`, `trade`, `recap`, `strategy`, `halt`, `decision`, `state`, `agent`, `skill`, `routine`. Examples per scope are in AGENTS.md.
-
-   **A commit message that does not conform is a contract violation.** If push fails because of a future commitlint hook, do NOT add `--no-verify` — fix the message and re-commit (or `--amend` before push).
+   **A commit message that doesn't pass `skills/commit` is a contract violation.** Do NOT add `--no-verify`; fix the message instead.
 
 7. **Pull/rebase/push:**
    ```bash
    git pull --rebase origin main
-   git push origin main
+   git push
    ```
-   Never `--force`, never `--no-verify`. On rejection: retry pull/rebase **once**. Still failing → `persist_conflict` + notify + non-zero exit. Stale lock recovers next cycle.
+   Use `git push` (no explicit ref). Direct push to main is the intentional policy for this repo (see `AGENTS.md` § Persistence + push policy); some environments have a global pre-push hook that flags the literal pattern `git push origin main`, so default-upstream form is preferred. Never `--force`, never `--no-verify`. On rejection: retry pull/rebase **once**. Still failing → `persist_conflict` + notify + non-zero exit. Stale lock recovers next cycle.
 
 8. **Verify push:**
    ```bash

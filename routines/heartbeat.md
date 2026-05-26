@@ -38,8 +38,4 @@ This routine exists because the agent's 4/day cycles are themselves the system's
 
 ## Commit
 
-- Normal: `chore(cycle): heartbeat [cycle <cid>]`
-- With NAV refresh: `chore(cycle): heartbeat nav_refresh [cycle <cid>]`
-- With liveness gap detected: `fix(cycle): heartbeat liveness_gap <gap_hours>h [cycle <cid>]`
-
-One commit per heartbeat. The repo will accumulate heartbeat commits — that is intentional; the commit history doubles as a liveness audit log.
+Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`heartbeat` rows). One commit per heartbeat — the commit history doubles as a liveness audit log; that's intentional.

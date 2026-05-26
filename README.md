@@ -2,8 +2,8 @@
 
 Markdown-only instruction pack for a stateless autonomous Polymarket trader running as scheduled coding-agent sessions. No app code. No Dockerfile. No build step.
 
-- **Routines** = scheduled triggers (cron in YAML frontmatter).
-- **Skills** = reusable capabilities loaded on demand.
+- **Routines** = scheduled triggers (cron in YAML frontmatter); user wires the Claude Code UI cron timers.
+- **Skills** = reusable capabilities loaded on demand. Token-conscious: `AGENTS.md` is the only auto-loaded contract; everything else is opt-in per routine step.
 
 Each run wakes fresh. The repo is the only state. Anything not committed and pushed before the cycle ends is forgotten.
 
@@ -15,10 +15,11 @@ PRDs, ADRs, plans, changelog → [`pm/`](pm/). Runtime agent never reads `pm/`.
 CLAUDE.md            one-line shim → AGENTS.md
 AGENTS.md            model-agnostic boot prompt
 README.md            this file
-routines/            4 scheduled playbooks (cron in frontmatter)
-skills/              10 internal skills + Polymarket SDK submodule
+routines/            5 scheduled playbooks (4 trade routines + heartbeat)
+skills/              12 internal skills + Polymarket SDK submodule
 config/              guardrails.md, mode.json
-state/               portfolio/halts/lock/cycle-index .json + trade-log.jsonl
+state/               portfolio/halts/lock/cycle-index/scorecard/calibration .json
+                     + trade-log.jsonl, forecasts.{open,resolved}.jsonl, universe.jsonl
 strategy/            current.md (agent-owned), history/ snapshots
 research/            INDEX.md + YYYY-MM-DD/ notes + watchlists
 recaps/              daily YYYY-MM-DD.md + weekly YYYY-Www.md
@@ -30,9 +31,10 @@ pm/                  humans only
 | UTC   | ET           | Routine                                                       | Purpose                                          |
 | ----- | ------------ | ------------------------------------------------------------- | ------------------------------------------------ |
 | 04:00 | 23:00 (prev) | [overnight-watch](routines/overnight-watch.md)                | Asia monitor; NAV + breaker; opportunistic only  |
-| 12:00 | 07:00        | [research-window](routines/research-window.md)                | US wake-up; heaviest research                    |
-| 18:00 | 13:00        | [trade-window](routines/trade-window.md)                      | Peak US; decisions + execution                   |
+| 12:00 | 07:00        | [research-window](routines/research-window.md)                | US wake-up; heaviest research; ≥3 forecasts      |
+| 18:00 | 13:00        | [trade-window](routines/trade-window.md)                      | Peak US; decisions + execution; ≥3 forecasts     |
 | 22:00 | 17:00        | [daily-close](routines/daily-close.md)                        | Recap + reflect + summary (Sun: +weekly)         |
+| 0 */2 | every 2h     | [heartbeat](routines/heartbeat.md)                            | Liveness probe; emits `liveness_gap` if scheduler skipped |
 
 Circuit breaker is a skill ([skills/circuit-breaker](skills/circuit-breaker/SKILL.md)), invoked at checkpoints **inside** every routine.
 
