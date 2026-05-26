@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260525T040407Z-3050065d",
-  "last_started_at": "2026-05-25T04:04:07Z",
-  "last_completed_at": "2026-05-25T04:05:35Z",
+  "last_cycle_id": "20260526T181010Z-4374b9b4",
+  "last_started_at": "2026-05-26T18:10:39Z",
+  "last_completed_at": "2026-05-26T18:15:00Z",
   "last_pushed_commit": "d35aa304cdb8a2b767939820e49139293a5d2e18",
   "nav_snapshots": [
     {
@@ -19,6 +19,11 @@
       "ts": "2026-05-25T04:05:30Z",
       "nav_usdc": 54,
       "cycle_id": "20260525T040407Z-3050065d"
+    },
+    {
+      "ts": "2026-05-26T18:15:00Z",
+      "nav_usdc": 54,
+      "cycle_id": "20260526T181010Z-4374b9b4"
     }
   ]
 }
