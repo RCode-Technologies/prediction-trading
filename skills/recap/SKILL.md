@@ -24,17 +24,13 @@ Invoked by `daily-close`. Writes the scorecard handoff consumed by `reflect`.
    - Halts.
    - NAV start-of-day vs now (Δ%).
    - Open positions count + cost basis + MTM.
-   - **Learning scorecard:** resolved (count, hit rate, Brier, optional log loss); unresolved (midpoint drift, CLV — not truth); attribution by `strategy_version` / `thesis_id` / `feature_tags` / `source_providers`; missing learning fields that blocked attribution.
-   - **Smartness scorecard** (rolling 30 UTC dates, **fenced JSON block** so `reflect` can `jq` it):
-     - `brier_agent`, `brier_market_p`, `brier_skill = brier_market_p - brier_agent`
-     - `calibration_slope`, `calibration_intercept` (OLS outcome ~ your_p)
-     - `auc`, `kl_vs_market`, `drift_skill`, `rejected_drift`
-     - per-`source_providers`: `{provider, resolved_n, brier_provider, brier_market_p, penalty_active}`
-     - per-`feature_tag`: `{tag, resolved_n, brier_tag, brier_market_p}`
-     - `brier_skill_trend_14d` = OLS slope of daily `brier_skill` over trailing 14d
-     - `last_good_version`, `days_since_last_improvement`
-     - `exploration_due_today` = thesis IDs whose `next_retry_date <= today`
-     - `reflection_outcomes_30d` = `{accepted, regression_blocked, auto_revert}` counts
+   - **Learning scorecard:** resolved (count, hit rate, Brier, optional log loss); unresolved (midpoint drift, CLV — not truth); attribution by `strategy_version` / `thesis_id` / `feature_tags` / `source_providers` / **`learning_intent` (v2)**; missing learning fields that blocked attribution. **v2:** explore vs exploit slices reported separately so cold-start probes don't drown out exploit signal.
+   - **Smartness scorecard (v2 — read from `state/scorecard.json` first).** `recalibrate.sweep()` writes it on every overnight-watch and daily-close. Recap's job is to **embed** it in the markdown as a fenced JSON block (not recompute it). If `state/scorecard.json` is missing or stale (`updated_at < now - 12h`), fall back to recomputing from `state/forecasts.resolved.jsonl`. Schema:
+     - `exploit.{brier_agent, brier_market_p, brier_skill, calibration_slope, calibration_intercept, auc, kl_vs_market, drift_skill, resolved_n, unresolved_n}`
+     - `explore.{brier_explore, brier_market_p, calibration_slope, buckets_filled, resolved_n, unresolved_n}`
+     - `by_provider[]`, `by_feature_tag[]`
+     - Derived (not in scorecard.json — recap computes these): `brier_skill_trend_14d`, `last_good_version`, `days_since_last_improvement`, `exploration_due_today`, `reflection_outcomes_30d = {accepted, regression_blocked, auto_revert}`.
+   - **v2:** also list `null_cycle` events from the day's trade-log — they're auditable evidence of action-floor misses.
 
 3. **Write `recaps/YYYY-MM-DD.md`** with frontmatter:
    ```yaml

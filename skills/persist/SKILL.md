@@ -39,6 +39,23 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
    ```
    Fail → `persist_conflict` + notify + exit (no commit).
 
+1b. **Null-cycle audit (v2).** Read this cycle's event types from `trade-log.jsonl` (filter `cycle_id == <cid>`). Compare against the routine's expected floor (defined in `strategy/current.md` § Action commitment per cycle):
+
+   | phase            | required events                                                       |
+   | ---------------- | --------------------------------------------------------------------- |
+   | research_window  | `research_note >=1`, `candidate_rank >=1`, `forecast >=3`             |
+   | trade_window     | `forecast >=3`                                                        |
+   | daily_close      | `recap >=1`, `reflection >=1`                                         |
+   | overnight_watch  | `nav_snapshot >=1`                                                    |
+
+   Any floor missed → append:
+   ```json
+   {"event_type":"null_cycle","reason":"floor_missed","required":{"forecast":3,"research_note":1,"candidate_rank":1},"actual":{"forecast":<n>,"research_note":<n>,"candidate_rank":<n>},"phase":"<phase>"}
+   ```
+   Then call `notify` kind `null_cycle` (paper + mainnet, suppression-exempt).
+
+   This is auditable evidence, NOT a halt. The cycle still commits + pushes so the failure is durable — silent failure is the actual enemy. If the floor was missed because the breaker is active, suppress `null_cycle` (the halt already explains why).
+
 2. **`nav_snapshot`** via `journal`:
    ```json
    {"event_type":"nav_snapshot","nav_usdc":<n>,"cash_usdc":<n>,"positions_value_usdc":<n>}
@@ -51,7 +68,7 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
 
 5. **`cycle_end`** via `journal`.
 
-6. **Commit once** (Conventional Commits). Keep the subject compact and put useful detail in the body:
+6. **Commit once** (Conventional Commits / commitlint — **canonical rules in `AGENTS.md` § Commit message standard**; this is a HARD contract). Keep the subject compact (≤72 chars including `[cycle <cid>]`) and put useful detail in the body:
    ```bash
    git add -A
    git commit \
@@ -59,7 +76,9 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
      -m "Phase: <phase>" \
      -m "Details: <concise summary of artifacts, decisions, notifications>"
    ```
-   Preferred scopes: `research`, `trade`, `recap`, `cycle`, `strategy`, `halt`. Use `chore(cycle): <phase> no-op [cycle <cid>]` when the run only checked state and opened no positions.
+   Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `perf`, `test`, `style`, `build`, `ci`, `revert`. Allowed scopes: `cycle`, `research`, `trade`, `recap`, `strategy`, `halt`, `decision`, `state`, `agent`, `skill`, `routine`. Examples per scope are in AGENTS.md.
+
+   **A commit message that does not conform is a contract violation.** If push fails because of a future commitlint hook, do NOT add `--no-verify` — fix the message and re-commit (or `--amend` before push).
 
 7. **Pull/rebase/push:**
    ```bash

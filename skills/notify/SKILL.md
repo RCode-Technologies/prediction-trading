@@ -15,8 +15,9 @@ Telegram = plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>` 
 
 ## Suppression rules
 
-- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `circuit_breaker`. Skip per-trade.
-- **Mainnet:** `routine_summary`, `discovery_summary`, `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`.
+- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `null_cycle` (v2), `liveness_gap` (v2). Skip per-trade.
+- **Mainnet:** `routine_summary`, `discovery_summary`, `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`, `null_cycle` (v2), `liveness_gap` (v2).
+- **Suppression-exempt (always send if creds present, paper + mainnet):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `persist_conflict`. These exist to break silent-failure modes; never suppress them by mode.
 
 Keep automated Telegram concise. If a routine opened no positions and has no human action item, prefer a one-line `routine_summary` over a verbose recap.
 
@@ -71,6 +72,8 @@ One file per kind/variant — **load exactly the one you need, never preload the
 | `preflight_failed`  | trade preflight gate          | [templates/preflight_failed.md](templates/preflight_failed.md)                          |
 | `persist_conflict`  | push rejected after retry     | [templates/persist_conflict.md](templates/persist_conflict.md)                          |
 | `phase_missed`      | per missed phase              | [templates/phase_missed.md](templates/phase_missed.md)                                  |
+| `null_cycle`        | v2 — routine missed its floor | [templates/null_cycle.md](templates/null_cycle.md)                                      |
+| `liveness_gap`      | v2 — scheduler skipped cycles | [templates/liveness_gap.md](templates/liveness_gap.md)                                  |
 
 ### Markdown safety (applies to every template)
 

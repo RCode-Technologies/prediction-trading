@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "updated_at": null,
+  "window_days": 30,
+  "exploit": {
+    "resolved_n": 0,
+    "unresolved_n": 0,
+    "brier_agent": null,
+    "brier_market_p": null,
+    "brier_skill": null,
+    "calibration_slope": null,
+    "calibration_intercept": null,
+    "auc": null,
+    "kl_vs_market": null,
+    "drift_skill": null
+  },
+  "explore": {
+    "resolved_n": 0,
+    "unresolved_n": 0,
+    "brier_explore": null,
+    "brier_market_p": null,
+    "calibration_slope": null,
+    "buckets_filled": 0
+  },
+  "by_provider": [],
+  "by_feature_tag": []
+}

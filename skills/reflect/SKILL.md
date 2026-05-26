@@ -32,13 +32,19 @@ Runs once/UTC date from `daily-close`. Snapshot-then-edit. Learning is empirical
    
    Weaker → add to **Pending evidence** only.
 
-6. **Smartness scorecard.** Read today's `recaps/<date>.md` "Smartness scorecard" fenced JSON + trailing 30d slice. If absent, recompute from trade-log:
-   - `brier_agent`, `brier_market_p`, `brier_skill`
-   - `calibration_slope`, `calibration_intercept` (OLS over `your_p` vs outcome)
-   - `auc`, `kl_vs_market`, `drift_skill`, `rejected_drift`
-   - per-provider `{resolved_n, brier_provider, brier_market_p}`
-   - per-`feature_tag` `{resolved_n, brier_tag, brier_market_p}`
-   
+6. **Smartness scorecard (v2 — read from `state/scorecard.json` first).** `skills/recalibrate.sweep()` keeps this file fresh on every cycle. Reflect's job is now governance, not recomputation. Order of preference:
+
+   1. `state/scorecard.json` if `updated_at >= now - 12h` → use directly.
+   2. Today's `recaps/<date>.md` fenced JSON → use if scorecard.json is stale.
+   3. Fall back to recomputing from `state/forecasts.resolved.jsonl` (slow path).
+
+   Schema (full):
+   - `exploit.{brier_agent, brier_market_p, brier_skill, calibration_slope, calibration_intercept, auc, kl_vs_market, drift_skill, resolved_n, unresolved_n}`
+   - `explore.{brier_explore, brier_market_p, calibration_slope, buckets_filled, resolved_n, unresolved_n}`
+   - `by_provider[]`, `by_feature_tag[]`
+
+   **Use the v2 cold-start carve-out** (per `strategy/current.md` § Reflection-quality gate): when `exploit.resolved_n < 5`, the regression gate operates on `explore.calibration_slope` instead of `exploit.brier_skill`.
+
    Hold in memory; write into `metrics` of the `reflection` event in step 9.
 
 7. **Convergent calibration update law** (per `strategy/current.md`). Per bucket with `resolved_n >= 10`:

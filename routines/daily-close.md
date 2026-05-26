@@ -21,8 +21,9 @@ US close. Crystallize day's signals. Reflect, recap, daily Telegram. Sundays: al
 5. `circuit-breaker.evaluate()` — cp2 (post-marks). Asia-time crashes often surface here.
 6. `risk.nav()` + `journal.nav_snapshot`.
 7. `circuit-breaker.evaluate()` — cp3 (post-snapshot). Halted → surface in recap.
-8. `recap` — write `recaps/YYYY-MM-DD.md` (with learning + smartness scorecards used by reflection). **Sunday:** also `recaps/YYYY-Www.md`.
-9. `reflect` — once/UTC date. Convert scorecards into strategy update if new evidence. May edit `strategy/current.md` and snapshot to `strategy/history/`.
+7b. **`recalibrate.sweep()` (v2)** — final sweep of the day. Resolves any open forecasts past `close_time`. Writes `state/scorecard.json` + `state/calibration.json` — `recap` and `reflect` consume these directly.
+8. `recap` — write `recaps/YYYY-MM-DD.md`. Reads `state/scorecard.json`. **Sunday:** also `recaps/YYYY-Www.md`.
+9. `reflect` — once/UTC date. Reads `state/scorecard.json`. With recalibrate keeping it fresh, reflect's role narrows to governance (snapshot, version bump, regression gate). May edit `strategy/current.md` and snapshot to `strategy/history/`.
 10. `notify` — `daily_summary`. Sunday: also `weekly_recap`.
 11. `journal.phase_completed`.
 12. `persist`.

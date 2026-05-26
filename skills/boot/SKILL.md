@@ -30,12 +30,22 @@ outputs: cycle_id, lock acquired, validated state, halt status
 
 6. **Observation transition.** If `mode.observation_only==true` and `now >= observation_started_at + observation_hours * 3600` → set `observation_only=false`. Do **not** commit here; `persist` includes this state change in the routine's single end-of-cycle commit.
 
-7. **Append `cycle_start`:**
+7. **Liveness gap check (v2).** Read `state/cycle-index.json.last_completed_at`. Compute `gap_seconds = now - last_completed_at`. The 4/day schedule means expected gap ≤ 6h between cycles (worst case = 22:00 daily-close → 04:00 overnight-watch). Threshold:
+   - `gap_seconds > 9 * 3600` (1.5× the longest expected gap, i.e. 9h) → append `liveness_gap`:
+     ```json
+     {"event_type":"liveness_gap","last_completed_at":"<iso>","gap_seconds":<n>,"threshold_seconds":32400,"missed_routines_inferred":[<list>]}
+     ```
+     `missed_routines_inferred` = list of routines whose `cron` time fell inside the gap (compute from frontmatter cron + gap window). Then `notify` will pick this up in step 8b below.
+   - Gap is informational, NOT a halt — the agent should still run this routine. The signal tells humans (and `reflect`) that the scheduler skipped.
+
+8. **Append `cycle_start`:**
    ```json
    {"schema_version":1,"event_id":"<cid>-cycle_start-1","cycle_id":"<cid>","event_type":"cycle_start","ts":"<now>","mode":"<network>","phase":"<caller>"}
    ```
 
-8. **Return** `{cycle_id, halts_active, mode, observation_only}` to caller.
+8b. **Liveness alert.** If step 7 emitted `liveness_gap`, call `notify` with kind `liveness_gap` (paper + mainnet, suppression-exempt). Continue regardless of notify outcome — alerting must not block the cycle.
+
+9. **Return** `{cycle_id, halts_active, mode, observation_only, liveness_gap_seconds}` to caller.
 
 ## Failure modes
 

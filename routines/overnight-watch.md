@@ -14,15 +14,16 @@ Asia active, US asleep. Light monitor: marks, NAV, breaker. Opportunistic mainne
 ## Steps
 
 1. `boot`
-2. `circuit-breaker.evaluate()` — cp1 (post-boot). Halted → jump to 9.
-3. **No-position fast path.** If `state/portfolio.json.positions == []` and `mode.observation_only==true`, skip CLOB marks and opportunistic evaluation. Run `circuit-breaker.evaluate()` cp2 using cash-only NAV; if halted, jump to 9. Otherwise send one-line `notify routine_summary` saying no open positions and no trades opened, then jump to 9.
+2. `circuit-breaker.evaluate()` — cp1 (post-boot). Halted → jump to 10.
+3. **No-position fast path.** If `state/portfolio.json.positions == []` and `mode.observation_only==true`, skip CLOB marks and opportunistic evaluation. Run `circuit-breaker.evaluate()` cp2 using cash-only NAV; if halted, jump to 10. Otherwise send one-line `notify routine_summary` and proceed to step 9 (`recalibrate.sweep` runs regardless — adaptation is inescapable).
 4. `markets` — refresh CLOB midpoints on **open positions only** (no discovery, no source burn).
 5. `risk.nav()` + `journal.nav_snapshot`.
-6. `circuit-breaker.evaluate()` — cp2 (post-marks). Asian-time crashes most often fire here. Halted → jump to 9.
+6. `circuit-breaker.evaluate()` — cp2 (post-marks). Asian-time crashes most often fire here. Halted → jump to 10.
 7. Opportunistic gate (all required): watchlist ≤24h fresh, candidate midpoint moved ≥200 bps in our favor, `liquidityNum >= 10000`, mode allows (paper post-obs, or mainnet preflight passes). If yes: `sizing` → `trade` for that single candidate. If no trade opens and there are no open positions, send the same concise `routine_summary`.
 8. `circuit-breaker.evaluate()` — cp3, only if step 7 fired.
-9. `journal.phase_completed`.
-10. `persist`.
+9. **`recalibrate.sweep()` (v2)** — refresh `state/scorecard.json` + `state/calibration.json`; resolve any open forecasts whose `close_time` is past via ≤1 Gamma source. Cheap when no forecasts are pending.
+10. `journal.phase_completed`.
+11. `persist`.
 
 ## Source budget
 
