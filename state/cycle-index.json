@@ -1,9 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260526T181010Z-4374b9b4",
-  "last_started_at": "2026-05-26T18:10:39Z",
-  "last_completed_at": "2026-05-26T18:15:00Z",
-  "last_pushed_commit": "d35aa304cdb8a2b767939820e49139293a5d2e18",
+  "last_cycle_id": "20260526T220626Z-4444a3d5",
+  "last_started_at": "2026-05-26T22:07:01Z",
+  "last_completed_at": "2026-05-26T22:11:50Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -21,9 +20,19 @@
       "cycle_id": "20260525T040407Z-3050065d"
     },
     {
+      "ts": "2026-05-25T18:11:00Z",
+      "nav_usdc": 54,
+      "cycle_id": "20260525T180603Z-6c1a6cfb"
+    },
+    {
       "ts": "2026-05-26T18:15:00Z",
       "nav_usdc": 54,
       "cycle_id": "20260526T181010Z-4374b9b4"
+    },
+    {
+      "ts": "2026-05-26T22:08:10Z",
+      "nav_usdc": 54,
+      "cycle_id": "20260526T220626Z-4444a3d5"
     }
   ]
 }

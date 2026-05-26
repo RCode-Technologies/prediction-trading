@@ -11,7 +11,7 @@ newest day on top. The agent maintains this file as part of
 
 ## 2026-05-26
 
-| 2026-05-26T18:13Z | candidates | trade-window refresh after missed research_window; no fills (0bps edge on all) | 566136, 1012319, 1439549, 1492419 |
+| 2026-05-26T12:10Z | overnight-shifts | what shifted overnight (NBA East sweep, West series 2-2, Iran emerging deal, weekend polling) | tbd |
 
 ## 2026-05-24
 
