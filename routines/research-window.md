@@ -9,66 +9,56 @@ expected_frequency: 1/day
 
 # Research Window — 12:00 UTC / 07:00 ET
 
-US wake-up. Build today's watchlist. **Heaviest research routine** — most of the day's source budget spent here. **Action commitment: ≥1 `research_note`, ≥1 `candidate_rank`, ≥3 `forecast` events.**
+Heaviest research routine. **Floor: ≥1 `research_note`, ≥1 `candidate_rank`, ≥3 `forecast`.**
 
 ## v2 flow: universe-first
 
-Old (v1) flow ran research blind on a news angle, then queried Gamma for top-volume markets, then took the empty intersection. v2 reverses it:
-
-1. Pull/refresh the liquid universe (`markets.universe()`, 24h cached).
-2. Identify the universe's most actionable themes (top-N markets by category × liquidity).
-3. Run **targeted** research keyed off those market questions — not blind news scraping.
-4. Attach signals back to the universe.
-5. Build the watchlist + emit forecasts (including mandatory exploration probes).
+Universe → identify targets → targeted research → attach signals → watchlist + forecasts (incl. mandatory probes). Avoids v1's empty intersection.
 
 ## Steps
 
-1. **Set reasoning effort to MAX.** This is the day's most consequential routine; the watchlist built here drives every downstream trade-window decision.
+1. **Set reasoning effort to MAX** — this drives downstream trade-window decisions.
 2. `boot`
-3. `circuit-breaker.evaluate()` — cp1. Halted → skip to 12.
-4. **Universe refresh.** If `state/universe.jsonl` is missing or `cached_at < now - 24h`, run `markets.universe()` (costs 1 Gamma source). Else load from cache.
-5. **Identify research targets.** From the universe, pick the top 10-15 markets by `category` diversity × liquidity. For each, derive a short research angle (e.g. "what's the latest polling on <market_question>?"). Sources reserved: 2 (research) + 1 (already spent on universe if refreshed).
-6. `research` — run **targeted lookups** keyed off the chosen market questions, not a free-floating news angle. Budget ≤2 sources (external keys → native WebSearch/WebFetch → Polymarket only). Each thesis card MUST set `market_ids` field so `attach_signals` can join later.
-7. `markets` — `attach_signals` + `rank`. Builds candidate slate from universe + research. Slate may have any mix of exploit-eligible (thesis-matched, `|your_p - market_p| >= 0.03`) and exploration-fallback (no thesis or sub-edge) candidates.
-8. **Build forecast slate (≥3 mandatory).** Same algorithm as `trade-window` step 6:
-   - Exploit slots first (cap 3).
-   - Fill remaining slots with explore probes (`learning_intent:"explore"`, `explore_rank ∈ {1,2,3}`).
-9. `sizing` per slate entry. Exploit candidates may produce paper fills post-observation; explore probes are forecast-only.
-10. `trade` for any exploit decision with `shares > 0`. Research-window typically doesn't fire mainnet (that's trade-window's role) but paper fills are allowed.
-11. **Self-audit.** Count `forecast` events this cycle. If `< 3`, append `null_cycle reason:"forecast_floor_missed"` and notify. Count `research_note` and `candidate_rank` too — those have their own floor of 1 each.
-12. `journal.phase_completed` with `forecasts:<N>`, `research_notes:<N>`, `candidate_rank:<N>`, `slate_composition`.
-13. `notify` — `discovery_summary` summarizing slate composition. If `null_cycle` was emitted, also send the `null_cycle` alert.
+3. `circuit-breaker.evaluate()` — cp1. Halted → jump to 12.
+4. **Universe refresh.** `state/universe.jsonl` missing or `cached_at < now - 24h` → run `markets.universe()` (1 Gamma source). Else load cache.
+5. **Identify targets.** Top 10-15 universe markets by `category` × liquidity. Derive a short angle per target. Budget reserved: 2 (research) + 1 (universe if refreshed).
+6. `research` — targeted lookups by market question. ≤2 sources (Brave/Tavily/Serper → native WebSearch/WebFetch → Polymarket-only). Each thesis card MUST set `market_ids` for `attach_signals` join.
+7. `markets` — `attach_signals` + `rank`. Slate mix of exploit-eligible + exploration-fallback candidates.
+8. **Build forecast slate (≥3 mandatory)** — same algorithm as `trade-window` step 6.
+9. `sizing` per slate entry. Exploit may fill (post-obs); explore is forecast-only.
+10. `trade` for exploit decisions with `shares > 0`. Mainnet rare here (trade-window owns it).
+11. **Self-audit.** Count `forecast` (`<3` → `null_cycle reason:"forecast_floor_missed"`), `research_note` (`<1` → null_cycle), `candidate_rank` (`<1` → null_cycle). Notify on any.
+12. `journal.phase_completed forecasts:<N>, research_notes:<N>, candidate_rank:<N>, slate_composition`.
+13. `notify discovery_summary`. `null_cycle` if emitted (suppression-exempt).
 14. `persist`.
 
 ## Source budget
 
-3 max/cycle. Typical: 1 (universe refresh) + 2 (targeted research) = 3.
+3 max/cycle. Typical: 1 (universe) + 2 (research) = 3.
 
 ## Output artifacts
 
-- `state/universe.jsonl` (refreshed daily, persistent)
-- `research/YYYY-MM-DD/<slug>.md` per thesis lookup
-- `research/YYYY-MM-DD/watchlist.md` (top 5 with fresh marks + slate composition)
+- `state/universe.jsonl` (refreshed daily)
+- `research/YYYY-MM-DD/<slug>.md` per thesis
+- `research/YYYY-MM-DD/watchlist.md` (top 5 + slate composition)
 
 ## Trade behavior
 
-- Paper observation (`mode.observation_only==true`): forecast-only on both exploit and explore paths. Sizing's observation short-circuit handles this.
-- Paper post-observation: exploit candidates fill at midpoint; explore probes remain forecast-only.
-- Mainnet: not prioritized here (US news drops after 09:30 ET = `trade-window`). Execute only if strong, time-sensitive edge closes before 18:00 UTC.
+- Paper obs: forecast-only on both paths (sizing's observation short-circuit).
+- Paper post-obs: exploit may fill; explore stays forecast-only.
+- Mainnet: not prioritized; trade-window owns it.
 
 ## Failure modes
 
-- Gamma down AND universe cache stale → `null_cycle reason:"no_market_data"`, exit clean after persist.
-- All research providers error → continue on Polymarket-only; explore probes still emit (they don't need news).
-- No exploit candidates → fine. Explore slate fills, ≥3 forecasts still emitted.
-- < 3 forecasts emitted → `null_cycle reason:"forecast_floor_missed"`, cycle still persists for auditability.
+- Gamma down AND universe cache stale → `null_cycle reason:"no_market_data"`.
+- All research providers error → Polymarket-only; explore probes still emit (don't need news).
+- 0 exploit candidates → fine. Explore fills.
+- < 3 forecasts → `null_cycle reason:"forecast_floor_missed"` (cycle still persists).
 
 ## Notify
 
-Send `discovery_summary` in paper and mainnet (concise: slate composition `N_exploit + N_explore`, top thesis if any). For exploration-only cycles, the summary names the 3 probed markets and their ε.
-
-`null_cycle` alert sent in paper + mainnet whenever any floor is missed.
+`discovery_summary` paper + mainnet (slate composition, top thesis). For explore-only cycles: name the 3 probed markets and their ε. `null_cycle` suppression-exempt.
 
 ## Commit
 
-Subject per `skills/commit/SKILL.md` § Routine-mapped subjects (`research-window` rows). Body: slate composition, sources used, notification status. One routine commit.
+Per `skills/commit` § Routine-mapped subjects. Body: slate composition, sources used, notifications. One commit.

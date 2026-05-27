@@ -1,22 +1,19 @@
 # Guardrails
 
-Human-owned, non-negotiable. Reflection **cannot** edit this file; it surfaces recommendations via daily summary.
+Human-owned. Reflection cannot edit this file; recommendations surface via daily summary.
 
-## Position sizing — 5% per token
+## Position sizing — 5% per token (`skills/sizing`)
 
 ```
-existing_token_risk + new_order_notional + estimated_fees <= 0.05 * NAV
-new_order_notional + estimated_fees                       <= cash_usdc
+existing_token_risk + new_order_notional + fees <= 0.05 * NAV
+new_order_notional + fees                       <= cash_usdc
 ```
 
-- `NAV = cash_usdc + Σ(open_position.shares * fresh_mark_price)`.
-- Fresh mark = CLOB midpoint with quote `ts <= 15 min` old.
-- `existing_token_risk = Σ(position.cost_basis_usdc for same token_id) + Σ(open_order.notional_usdc + fee_usdc for same token_id)`.
-- Stale NAV → no new trades.
+`NAV = cash + Σ(shares * fresh_mark)`. Fresh mark = CLOB midpoint with `ts ≤ 15min`. `existing_token_risk` includes open positions + open orders on same token. Stale NAV → no new trades.
 
 ## Correlation
 
-Related-fact markets (same election/match/regulatory event) share one 5% bucket; aggregate applies. Uncertain correlation → reject.
+Related-fact markets (same election/match/regulatory event) share one 5% bucket. Uncertain → reject.
 
 ## Order direction
 
@@ -24,28 +21,28 @@ Long BUY only. SELL only to reduce/close.
 
 ## Mark freshness
 
-Quotes >15 min = stale → no sizing, no trade.
+Quotes >15 min stale → no sizing, no trade.
 
-## Circuit breaker — -10% / 24h
+## Circuit breaker — -10% / 24h (`skills/circuit-breaker`)
 
-`rolling_24h_pnl <= -0.10 * baseline_NAV` → write `halts.json.active=true`, log `halt`, notify, commit, push, stop. Baseline = latest `nav_snapshot` with `ts <= now - 24h`, else `starting_capital`. Only humans clear. Unexplained cash delta also halts (v1 = no deposits/withdrawals).
+`rolling_24h_pnl <= -0.10 * baseline_NAV` → halt, log, notify, commit, push, stop. Baseline = latest `nav_snapshot` with `ts ≤ now - 24h`, else `starting_capital`. Only humans clear. Unexplained cash delta also halts.
 
 ## Research cap — 3 sources/cycle
 
-Shared counter across `skills/research` + `skills/markets`. Includes native WebSearch/WebFetch. Safety re-checks in `sizing`/`trade` don't count.
+Shared between `skills/research` + `skills/markets`. Native WebSearch/WebFetch count. Safety re-checks in `sizing`/`trade` don't.
 
 ## Append-only log
 
-`state/trade-log.jsonl`: append only. Never edit prior lines. Each line = valid JSON with `schema_version`, `event_id`, `cycle_id`, `event_type`, `ts`, `mode`.
+`state/trade-log.jsonl`: append only, never edit. Each line = valid JSON with `schema_version`, `event_id`, `cycle_id`, `event_type`, `ts`, `mode`.
 
 ## Push = success
 
-Every scheduled cycle: one Conventional Commit, pull --rebase, push. Routine pushes never use plain `--force` or `--no-verify`. Human-directed history consolidation may use `--force-with-lease` only after verifying a clean worktree and unchanged remote lease. No push = `persist_conflict` + notify + non-zero exit.
+Every cycle: one Conventional Commit + pull --rebase + push. No `--force` / `--no-verify`. `--force-with-lease` only for human-directed history consolidation after verifying clean tree + unchanged remote. No push = `persist_conflict`.
 
 ## Mainnet gate
 
-`skills/trade` is the only skill that reads wallet secrets. Preflights are fail-closed. Never infer Polymarket eligibility, never use VPN, never bypass platform restrictions.
+`skills/trade` is the only skill that reads wallet secrets. Preflights are fail-closed. Never infer Polymarket eligibility, never VPN, never bypass platform restrictions.
 
 ## Secrets
 
-`WALLET_SEED` is the only wallet secret. Presence check only: `[ -n "${WALLET_SEED:-}" ]`. Never print, log, or commit.
+`WALLET_SEED` is the only wallet secret. Presence check only: `[ -n "${WALLET_SEED:-}" ]`. Never print, log, or commit values.

@@ -1,50 +1,28 @@
 ---
 name: recalibrate
-description: Continuous, hook-driven scorecard + calibration update. Runs on every relevant journal append (forecast, paper_fill, mainnet_fill, resolution); reflect/recap read its outputs instead of recomputing.
+description: Continuous scorecard + calibration update. tick() runs on every relevant journal append; sweep() runs in overnight-watch and daily-close. reflect/recap read its outputs.
 inputs: event (from journal hook) | sweep mode | open-forecast ledger
-outputs: state/scorecard.json, state/calibration.json, state/forecasts.open.jsonl, recalibration event
+outputs: state/scorecard.json, state/calibration.json, state/forecasts.{open,resolved}.jsonl, recalibration event
 ---
 
 # Recalibrate
 
-The structural fix for v1's "improvement only happens in `reflect` which only runs in `daily-close` which may never fire." In v2, adaptation runs **every time the journal is touched**.
+Adaptation runs whenever journal is touched, not only when `daily-close` fires. Two entrypoints:
 
-Two entry points:
-
-- `tick(event)` — fast incremental update fired by `skills/journal` post-append (see journal step 4).
-- `sweep()` — full recompute + Gamma resolution lookup, called by `overnight-watch` and `daily-close`.
+- `tick(event)` — fast incremental update from `skills/journal` post-append hook.
+- `sweep()` — full recompute + Gamma resolution lookup, from `overnight-watch` and `daily-close`.
 
 ## State files owned
 
 ### `state/scorecard.json`
-
-Single source of truth for the smartness scorecard. Read by `recap`, `reflect`, `notify daily_summary`.
 
 ```json
 {
   "schema_version": 1,
   "updated_at": "<iso>",
   "window_days": 30,
-  "exploit": {
-    "resolved_n": 0,
-    "unresolved_n": 0,
-    "brier_agent": null,
-    "brier_market_p": null,
-    "brier_skill": null,
-    "calibration_slope": null,
-    "calibration_intercept": null,
-    "auc": null,
-    "kl_vs_market": null,
-    "drift_skill": null
-  },
-  "explore": {
-    "resolved_n": 0,
-    "unresolved_n": 0,
-    "brier_explore": null,
-    "brier_market_p": null,
-    "calibration_slope": null,
-    "buckets_filled": 0
-  },
+  "exploit": {"resolved_n":0,"unresolved_n":0,"brier_agent":null,"brier_market_p":null,"brier_skill":null,"calibration_slope":null,"calibration_intercept":null,"auc":null,"kl_vs_market":null,"drift_skill":null},
+  "explore": {"resolved_n":0,"unresolved_n":0,"brier_explore":null,"brier_market_p":null,"calibration_slope":null,"buckets_filled":0},
   "by_provider": [],
   "by_feature_tag": []
 }
@@ -52,106 +30,76 @@ Single source of truth for the smartness scorecard. Read by `recap`, `reflect`, 
 
 ### `state/calibration.json`
 
-Per-bucket ledger, sliced by `learning_intent`. Mirrors the table in `strategy/current.md` but is machine-updated.
+Per-bucket × intent. Mirrors `strategy/current.md` tables but machine-updated.
 
 ```json
 {
   "schema_version": 1,
   "updated_at": "<iso>",
-  "exploit": {
-    "50-60": {"resolved_n": 0, "brier": null, "hit_rate": null, "adjustment": 0.0, "status": "collect"},
-    "60-70": {...},
-    "70-80": {...},
-    "80-90": {...}
-  },
-  "explore": {
-    "30-40": {...},
-    "40-50": {...},
-    "50-60": {...},
-    "60-70": {...},
-    "70-80": {...}
-  }
+  "exploit": {"50-60": {"resolved_n":0,"brier":null,"hit_rate":null,"adjustment":0.0,"status":"collect"}, ...},
+  "explore": {"30-40": {"resolved_n":0,"brier_explore":null,"brier_market_p":null,"calibration_slope":null,"status":"collect"}, ...}
 }
 ```
 
 ### `state/forecasts.open.jsonl`
 
-Append-only index of unresolved forecasts. Each line:
-
+Append-only index of unresolved forecasts. One line per forecast:
 ```json
 {"forecast_id":"<id>","market_id":"<id>","token_id":"<tid>","learning_intent":"<intent>","your_p":<p>,"market_p":<p>,"close_time":"<iso>","emitted_at":"<iso>","calibration_bucket":"<lo-hi>","resolved":false}
 ```
 
-`sweep()` compacts by writing only `resolved:false` rows on rewrite (atomic via `.tmp` + `mv`).
+`sweep()` compacts by rewriting only `resolved:false` rows (atomic via `.tmp` + `mv`).
 
-## `tick(event)` steps
+## `tick(event)`
 
-Called synchronously from `skills/journal` step 4 after a successful append. Must be cheap and **must never block the append**.
+Synchronous from `skills/journal` step 4. Must be cheap; must not block the append.
 
-1. **Filter event_type.** Operate only on `forecast`, `paper_fill`, `mainnet_fill`. Other types → no-op, return.
-2. **For `forecast`:**
-   - Append to `state/forecasts.open.jsonl` with `resolved:false`.
-   - Increment `scorecard.<intent>.unresolved_n` (atomic jq update).
-   - Update `scorecard.updated_at = now`.
-3. **For `paper_fill` or `mainnet_fill`:**
-   - Look up the parent forecast by `forecast_id` (or `idempotency_key`).
-   - Annotate the open-forecasts ledger entry with `fill_price`, `fill_shares`, `fill_ts`.
-   - Update portfolio MTM (delegated to `risk.nav()` — recalibrate does NOT write portfolio.json).
-4. **Emit `recalibration`** via `journal` (note: this is a recursive write but `tick` filters on event_type so it does not loop):
+1. Filter event_type to `{forecast, paper_fill, mainnet_fill}`. Else no-op.
+2. **`forecast`**: append to `state/forecasts.open.jsonl` (`resolved:false`). Increment `scorecard.<intent>.unresolved_n`. Bump `updated_at`.
+3. **`paper_fill` / `mainnet_fill`**: find parent forecast by `forecast_id` (or `idempotency_key`). Annotate the open-ledger entry with `fill_price`, `fill_shares`, `fill_ts`. Portfolio MTM = `risk.nav()` responsibility, not recalibrate's.
+4. Emit `recalibration` via `journal` (won't loop — `tick` filters event_type):
    ```json
    {"event_type":"recalibration","trigger":"<event_type>","forecast_id":"<id>","status":"ok","scorecard_path":"state/scorecard.json"}
    ```
-5. **Return** immediately. Heavy lifting (Brier recompute, slope/intercept) deferred to `sweep()`.
+5. Return. Heavy lifting (Brier, slope/intercept) deferred to `sweep()`.
 
-## `sweep()` steps
+## `sweep()`
 
-Called explicitly by `overnight-watch` (light) and `daily-close` (full). Source-budget-aware: prefers cached resolution data; only spends Gamma sources when an open forecast has passed `close_time` and is not yet resolved.
+Source-budget aware. Spends Gamma only when open forecasts have passed `close_time`.
 
-1. **Read open forecasts.** Filter `state/forecasts.open.jsonl` to `resolved:false`.
-2. **Identify candidates for resolution lookup.** Open forecasts with `close_time < now`. Group by `market_id` to dedupe Gamma calls.
-3. **Query Gamma** for resolution status. ≤1 source per cycle for this sweep. Skip if budget exhausted.
-   ```
-   GET https://gamma-api.polymarket.com/markets/<market_id>
-   ```
-   Look for `closed:true` + outcome resolution (`umaResolutionStatuses`, `resolvedBy`, or per-market resolution field per Polymarket schema).
-4. **For each resolved market:**
-   - Mark all open forecasts on that market `resolved:true, outcome:0|1, resolution_ts:<iso>`.
-   - Move the row to `state/forecasts.resolved.jsonl` (append-only archive).
-5. **Recompute scorecard.** Read trailing 30d from `state/forecasts.resolved.jsonl`:
-   - **Exploit slice:** filter `learning_intent=="exploit"`.
+1. Read `state/forecasts.open.jsonl`, filter `resolved:false`.
+2. Group open forecasts past `close_time` by `market_id`.
+3. Query Gamma (`GET /markets/<market_id>`) for resolution. ≤1 source/cycle. Skip if budget exhausted.
+4. For each resolved market: mark all open forecasts on it `resolved:true, outcome:0|1, resolution_ts:<iso>`. Move row to `state/forecasts.resolved.jsonl`.
+5. **Recompute scorecard** from trailing 30d resolved:
+   - Exploit slice (`learning_intent=="exploit"`):
      - `brier_agent = mean((your_p - outcome)^2)`
      - `brier_market_p = mean((market_p - outcome)^2)`
      - `brier_skill = brier_market_p - brier_agent`
-     - `calibration_slope, calibration_intercept`: OLS of `outcome ~ your_p`.
-     - `auc`: rank-AUC of `your_p` vs outcome (ties = 0.5).
-     - `kl_vs_market = mean(your_p*log(your_p/market_p) + (1-your_p)*log((1-your_p)/(1-market_p)))` clamped away from 0/1.
-     - `drift_skill`: for unresolved exploit forecasts, fraction whose current midpoint moved toward `your_p` more than toward forecast-time `market_p`. Requires a fresh CLOB book call per market — capped at 5 per sweep, oldest first.
-   - **Explore slice:** filter `learning_intent=="explore"`. Same formulas with `your_p` = `market_p + ε`.
-6. **Recompute calibration.** Per bucket × intent:
-   - `resolved_n` = count
-   - `hit_rate` = mean(outcome) among forecasts in that bucket
-   - `brier` = mean((your_p - outcome)^2)
-   - `adjustment` = per `strategy/current.md` § convergent update law (shrinkage formula).
-   - `status` = `collect` if `resolved_n < 10`, else `active`.
-7. **Per-provider / per-feature_tag slices.** Filter by exact match of `source_providers[]` and `feature_tags[]`. Compute Brier vs market baseline. Write into `scorecard.by_provider` and `scorecard.by_feature_tag`.
-8. **Atomic write** all three state files via `.tmp` + `mv`.
-9. **Emit `recalibration`** via `journal`:
+     - `calibration_slope, calibration_intercept` = OLS(outcome ~ your_p)
+     - `auc` = rank-AUC, ties=0.5
+     - `kl_vs_market = mean(your_p*log(your_p/market_p) + (1-your_p)*log((1-your_p)/(1-market_p)))` (clamped)
+     - `drift_skill`: fraction of unresolved exploit forecasts whose current midpoint moved toward `your_p` more than toward forecast-time `market_p`. Capped at 5 CLOB book calls/sweep, oldest first.
+   - Explore slice (`learning_intent=="explore"`): same formulas with `your_p = market_p + ε`.
+6. **Recompute calibration** per bucket × intent: `resolved_n`, `hit_rate = mean(outcome)`, `brier`, `adjustment` (per `strategy/current.md` convergent update law). `status = collect` if `n<10`, else `active`.
+7. Per-provider / per-feature_tag slices: filter by exact `source_providers[]` / `feature_tags[]`. Compute Brier vs market baseline.
+8. Atomic write `state/scorecard.json`, `state/calibration.json`, `state/forecasts.open.jsonl` via `.tmp` + `mv`.
+9. Emit `recalibration` via `journal`:
    ```json
-   {"event_type":"recalibration","trigger":"sweep","resolved_new":<n>,"unresolved_total":<n>,"scorecard_path":"state/scorecard.json","calibration_path":"state/calibration.json"}
+   {"event_type":"recalibration","trigger":"sweep","resolved_new":<n>,"unresolved_total":<n>}
    ```
-10. **Return** scorecard + calibration to caller.
 
 ## Source budget
 
-`tick()` — 0 sources. `sweep()` — ≤1 Gamma source (resolution lookup), ≤5 CLOB book calls (drift_skill on unresolved). CLOB calls do not count as research sources.
+`tick()` — 0 sources. `sweep()` — ≤1 Gamma (resolution), ≤5 CLOB book calls (drift_skill). CLOB doesn't count toward research budget.
 
 ## Failure modes
 
-- `state/forecasts.open.jsonl` corrupted → reconstruct from `trade-log.jsonl` (filter `event_type=="forecast"`, exclude those with matching resolution).
-- Gamma resolution lookup fails for a market → keep `resolved:false`, retry next sweep. Never guess outcomes.
-- Hook fires during a cycle with the trade-log locked by an atomic write → retry once with 100ms backoff, then log `recalibration status:"failed" reason:"lock_contention"` and continue.
-- Recursive write (tick emits recalibration which appends to journal which would re-tick) → `tick` filters on event_type and ignores `recalibration` events. No loop.
+- `state/forecasts.open.jsonl` corrupted → reconstruct from `trade-log.jsonl` (`forecast` events without matching resolution).
+- Gamma resolution lookup fails → keep `resolved:false`, retry next sweep. Never guess outcomes.
+- Lock contention during write → retry once after 100ms, then log `recalibration status:"failed" reason:"lock_contention"`.
+- Missing state files on first run → create with empty schema.
 
-## What `reflect` should now do
+## `reflect` integration
 
-Read `state/scorecard.json` + `state/calibration.json` first. Recompute only the slices needed for the current decision (e.g. the simulation in step 8 of `reflect`). The full scorecard is always fresh because `tick` ran on every relevant event. Reflection's job shrinks to **governance** (snapshot, version bump, regression gate) — adaptation is already done.
+Read `state/scorecard.json` + `state/calibration.json` first. Recompute only the slice needed for the current decision (e.g. the simulation in `reflect` step 8). Full scorecard is always fresh because `tick()` ran on every relevant event. Reflection's role narrows to **governance** (snapshot, version bump, regression gate).
