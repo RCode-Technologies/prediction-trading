@@ -24,7 +24,7 @@ Crystallize day's signals. Recap, reflect, daily Telegram. Sundays: also weekly.
 7b. **`recalibrate.sweep()`** — final daily sweep. Resolves open forecasts past `close_time`. Writes `state/scorecard.json` + `state/calibration.json`.
 8. `recap` — write `recaps/YYYY-MM-DD.md` (reads `state/scorecard.json`). Sunday: also `recaps/YYYY-Www.md`.
 9. `reflect` — once/UTC date. Reads scorecard. May edit `strategy/current.md` + snapshot.
-10. `notify daily_summary`. Sunday: also `weekly_recap`.
+10. `notify daily_summary`. Sunday: also `weekly_recap`. Then grep trade-log for this UTC date's `reflection` event: if `edited==true` OR `reason=="regression_blocked"` → also `notify strategy_evolution` as a separate message (template handles variants). All three are date-deduped by `notify` step 2, so safe under re-runs.
 11. `journal.phase_completed`.
 12. `persist`.
 
