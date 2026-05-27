@@ -26,7 +26,7 @@ Enter through one routine. Load skills only when a step says to. Don't improvise
 | 12:00    | research-window  | universe refresh, targeted research, ≥3 forecasts             |
 | 18:00    | trade-window     | primary decisions + execution; ≥3 forecasts                   |
 | 22:00    | daily-close      | recap + reflect (Sun: +weekly); `recalibrate.sweep`           |
-| 0 */2    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped     |
+| 0 */4    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped     |
 
 Circuit breaker (`skills/circuit-breaker.evaluate()`) at checkpoints inside every routine; `halt(reason)` for non-loss. Missed-phase: next routine greps trade-log for prior phase's `phase_completed`. Liveness gap: `boot` compares `now` vs `cycle-index.last_completed_at`; > 9h emits `liveness_gap` + notify.
 

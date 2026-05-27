@@ -1,12 +1,12 @@
 ---
 name: heartbeat
-cron: "0 */2 * * *"
+cron: "0 */4 * * *"
 cron_tz: UTC
 phase: heartbeat
-expected_frequency: 12/day
+expected_frequency: 6/day
 ---
 
-# Heartbeat — every 2h
+# Heartbeat — every 4h
 
 Dead-man's switch. Cheap and idempotent. Fires when nothing else is happening; closes the silent-failure gap that the 4/day trade routines can't catch alone (if those stop firing, nothing alerts).
 
