@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "cash_usdc": 9722.22,
+  "cash_usdc": 9496.52,
   "starting_capital": 10000,
   "starting_ts": "2026-05-24T00:00:00Z",
   "positions": [
@@ -10,20 +10,20 @@
       "token_id": "107991430623639225032965754091943250844532742184591128837653885909207697197564",
       "outcome": "YES",
       "side": "BUY",
-      "shares": 740.7407,
-      "avg_price": 0.375,
-      "mark_price": 0.375,
-      "market_value_usdc": 277.78,
-      "cost_basis_usdc": 277.78,
+      "shares": 1350.7407,
+      "avg_price": 0.372744,
+      "mark_price": 0.37,
+      "market_value_usdc": 499.77,
+      "cost_basis_usdc": 503.48,
       "opened_at": "2026-05-27T12:22:00Z",
-      "updated_at": "2026-05-27T16:09:30Z",
+      "updated_at": "2026-05-27T18:12:30Z",
       "status": "open",
       "market_question": "US x Iran diplomatic meeting by June 7, 2026?",
       "event_slug": "us-x-iran-diplomatic-meeting-by-329",
       "close_time": "2026-06-07T00:00:00Z",
-      "forecast_id": "20260527T120743Z-62cd07c7-fcst-1"
+      "forecast_id": "20260527T181042Z-83063414-fcst-1"
     }
   ],
   "open_orders": [],
-  "updated_at": "2026-05-27T16:09:30Z"
+  "updated_at": "2026-05-27T18:12:30Z"
 }
