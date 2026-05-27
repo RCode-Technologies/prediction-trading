@@ -16,7 +16,7 @@
       "market_value_usdc": 277.78,
       "cost_basis_usdc": 277.78,
       "opened_at": "2026-05-27T12:22:00Z",
-      "updated_at": "2026-05-27T12:22:00Z",
+      "updated_at": "2026-05-27T16:09:30Z",
       "status": "open",
       "market_question": "US x Iran diplomatic meeting by June 7, 2026?",
       "event_slug": "us-x-iran-diplomatic-meeting-by-329",
@@ -25,5 +25,5 @@
     }
   ],
   "open_orders": [],
-  "updated_at": "2026-05-27T12:22:00Z"
+  "updated_at": "2026-05-27T16:09:30Z"
 }
