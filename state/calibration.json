@@ -1,17 +1,71 @@
 {
   "schema_version": 1,
-  "updated_at": null,
+  "updated_at": "2026-05-27T04:08:00Z",
   "exploit": {
-    "50-60": {"resolved_n": 0, "brier": null, "hit_rate": null, "adjustment": 0.0, "status": "collect"},
-    "60-70": {"resolved_n": 0, "brier": null, "hit_rate": null, "adjustment": 0.0, "status": "collect"},
-    "70-80": {"resolved_n": 0, "brier": null, "hit_rate": null, "adjustment": 0.0, "status": "collect"},
-    "80-90": {"resolved_n": 0, "brier": null, "hit_rate": null, "adjustment": 0.0, "status": "collect"}
+    "50-60": {
+      "resolved_n": 0,
+      "brier": null,
+      "hit_rate": null,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "60-70": {
+      "resolved_n": 0,
+      "brier": null,
+      "hit_rate": null,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "70-80": {
+      "resolved_n": 0,
+      "brier": null,
+      "hit_rate": null,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "80-90": {
+      "resolved_n": 0,
+      "brier": null,
+      "hit_rate": null,
+      "adjustment": 0.0,
+      "status": "collect"
+    }
   },
   "explore": {
-    "30-40": {"resolved_n": 0, "brier_explore": null, "brier_market_p": null, "calibration_slope": null, "status": "collect"},
-    "40-50": {"resolved_n": 0, "brier_explore": null, "brier_market_p": null, "calibration_slope": null, "status": "collect"},
-    "50-60": {"resolved_n": 0, "brier_explore": null, "brier_market_p": null, "calibration_slope": null, "status": "collect"},
-    "60-70": {"resolved_n": 0, "brier_explore": null, "brier_market_p": null, "calibration_slope": null, "status": "collect"},
-    "70-80": {"resolved_n": 0, "brier_explore": null, "brier_market_p": null, "calibration_slope": null, "status": "collect"}
+    "30-40": {
+      "resolved_n": 0,
+      "brier_explore": null,
+      "brier_market_p": null,
+      "calibration_slope": null,
+      "status": "collect"
+    },
+    "40-50": {
+      "resolved_n": 0,
+      "brier_explore": null,
+      "brier_market_p": null,
+      "calibration_slope": null,
+      "status": "collect"
+    },
+    "50-60": {
+      "resolved_n": 0,
+      "brier_explore": null,
+      "brier_market_p": null,
+      "calibration_slope": null,
+      "status": "collect"
+    },
+    "60-70": {
+      "resolved_n": 0,
+      "brier_explore": null,
+      "brier_market_p": null,
+      "calibration_slope": null,
+      "status": "collect"
+    },
+    "70-80": {
+      "resolved_n": 0,
+      "brier_explore": null,
+      "brier_market_p": null,
+      "calibration_slope": null,
+      "status": "collect"
+    }
   }
 }
