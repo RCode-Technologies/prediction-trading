@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-28T04:10:00Z",
+  "updated_at": "2026-05-28T22:08:00Z",
   "exploit": {
     "50-60": {
       "resolved_n": 0,
@@ -40,9 +40,9 @@
       "status": "collect"
     },
     "40-50": {
-      "resolved_n": 1,
-      "brier_explore": 0.189225,
-      "brier_market_p": 0.148225,
+      "resolved_n": 2,
+      "brier_explore": 0.212225,
+      "brier_market_p": 0.191725,
       "calibration_slope": null,
       "status": "collect"
     },
