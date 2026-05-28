@@ -9,6 +9,10 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-05-28
+
+| 2026-05-28T12:08Z | macro-and-iran-update | US-Iran post-Rome-round + BTC $82k feasibility + Fed-Sep-cut re-affirm (combined macro note) | 2354045, 2350172, 1439549 |
+
 ## 2026-05-27
 
 | 2026-05-27T12:14Z | us-iran-meeting-by-jun7 | US-Iran senior bilateral meeting by 2026-06-07 given late-May "deal largely negotiated" rhetoric | 2354045 |
