@@ -69,7 +69,7 @@ Improvement is empirical, not guaranteed.
 
 ## Persistence + push (direct-to-main is intentional)
 
-- `main` is the only branch. No PRs, no feature branches. Every routine ends `HEAD == origin/main`.
+- **`main` is the ONLY branch (HARD).** Never create, switch to, or push a non-`main` branch; never `git worktree add`. No PRs, no feature branches, no `claude/*` branches — they break routines (which assume `main`) and strand state off the brain. Only a human creates branches, explicitly. Enforced by `.claude/hooks/block-non-main-branch.sh` (PreToolUse) + `.githooks/pre-push`. Every routine ends `HEAD == origin/main`.
 - One commit per routine (mainnet pre-submit is the only exception).
 - Commit format per `skills/commit/SKILL.md` (HARD).
 - Use `git push` (no explicit ref) — some global hooks block the literal `git push origin main` pattern. `.claude/settings.local.json` whitelists git ops for this repo.
