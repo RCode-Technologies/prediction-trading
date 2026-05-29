@@ -44,7 +44,7 @@ Both sides + ≤15min → return `best_bid`, `best_ask`, `spread = best_ask - be
 
 ### `attach_signals(universe, research_notes)`
 
-For each market: look up matching thesis in today's `research/YYYY-MM-DD/*.md` by `market_ids` field or keyword vs `market_question`. Populate thesis fields or `null`.
+For each market: look up matching thesis in today's `research/YYYY-MM-DD/*.md` by `market_ids` field or keyword vs `market_question`. Populate thesis fields or `null`. Carry the v3 gate fields from the matched thesis card forward: `resolution_criteria`, `resolution_parsed`, `reference_class`, `edge_source`, `source_providers`. No match → `thesis_id:null`, `reference_class:null`, `resolution_parsed:false`, `edge_source:"none"` (the candidate is explore-only; the binding gate is in `skills/sizing`).
 
 ### `rank(candidates, top_n=5)`
 
@@ -64,7 +64,7 @@ Sort: `exploit_eligible desc`, `edge_score desc`, `liquidity_num desc`. Apply le
 3. **Attach signals.** Read today's research thesis cards. Match by `market_ids` or keyword. Populate or leave `null`.
 4. **Fresh-price snapshot per candidate.** `book()` on each BUY-side `token_id`. Markets with stale books flagged `stale:true` but kept.
 5. **Rank** via `rank()`.
-6. **Candidate record fields:** `market_id`, `condition_id`, `token_id`, `outcome`, `market_question`, `event_slug`, `side:"BUY"`, `best_bid`, `best_ask`, `spread`, `executable_price` (= `best_ask` for BUY), `midpoint` (reference only), `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id` (may be null), `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `disconfirming_signals`, `learning_intent` (left null; assigned by trade-window step 6).
+6. **Candidate record fields:** `market_id`, `condition_id`, `token_id`, `outcome`, `market_question`, `event_slug`, `side:"BUY"`, `best_bid`, `best_ask`, `spread`, `executable_price` (= `best_ask` for BUY), `midpoint` (reference only), `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id` (may be null), `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `resolution_parsed`, `reference_class` (may be null), `edge_source`, `disconfirming_signals`, `learning_intent` (left null; assigned by trade-window step 6). The gate fields (`resolution_parsed`, `reference_class`, `source_providers`) are carried for the binding `skills/sizing` edge gate.
 7. **Write file** caller-named (`watchlist.md` pre-market, `candidates.md` market-open). Frontmatter + table.
 8. **`candidate_rank`** via `journal`:
    ```json

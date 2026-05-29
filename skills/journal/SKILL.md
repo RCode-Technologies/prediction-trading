@@ -23,7 +23,18 @@ Caller fields merged in.
 
 **Forecast events also need:** `strategy_version`, `forecast_id`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, `calibration_bucket`, `close_time`, `resolution_criteria`, `disconfirming_signals`, **`learning_intent ∈ {"explore","exploit","risk_reduction"}`**.
 
-**Decision events:** at minimum `forecast_id`, `strategy_version`, `thesis_id`, `feature_tags`, `learning_intent`.
+**v3 forecast gate/cost fields (also mandatory; produced by `skills/markets` book + `skills/sizing` gate, defined in `strategy/current.md` § Edge gate):**
+- `resolution_criteria` — parsed from the Gamma market `description` (already listed; v3 makes it non-empty for exploit).
+- `resolution_parsed` (bool) — true once `description` is fetched + parsed.
+- `reference_class` (string|null) — named base-rate class; null on explore.
+- `edge_source` (enum) — category-neutral signal tag ∈ {`news_latency`,`base_rate`,`structural`,`sentiment`,`none`}.
+- `best_bid`, `best_ask`, `spread` — from `markets.book()` (cost-honest; never midpoint).
+- `edge_net` — `your_p − best_ask` (YES BUY); the only edge the gate scores.
+- `sizing_tier` (int 0–3) — conviction tier; default/stub `0` until the Phase 5 ladder.
+
+Exploit forecasts MUST carry `resolution_parsed:true` + non-empty `resolution_criteria` + `reference_class != null` + `source_providers` len ≥ 2 (else `skills/sizing` demotes to explore). Explore forecasts may have `reference_class:null`, `edge_source:"none"`.
+
+**Decision events:** at minimum `forecast_id`, `strategy_version`, `thesis_id`, `feature_tags`, `learning_intent`, `sizing_tier`. Gate-miss decisions carry `reason ∈ {resolution_unparsed, no_reference_class, insufficient_sources, edge_below_net_threshold}` + `shares:0`.
 
 Never bury attribution in markdown — reflection reads JSONL.
 

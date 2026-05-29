@@ -9,22 +9,25 @@ owner: agent
 
 Agent-owned. Edited only by `skills/reflect`. Snapshotted to `strategy/history/` on every edit.
 
-v2 closes the cold-start deadlock: mandatory exploration probes (≥3 forecasts/cycle) populate calibration buckets empirically instead of waiting on a thesis match.
+v3 separates **learning** (forecast broadly, pay nothing) from **earning** (bet rarely, only past the edge gate). The two content cycles emit a broad forecast-only batch each; only gate-passers risk capital. The v2 cold-start device (≥3 mandatory ε-probes/cycle) is retired — it manufactured noise. See pm/prds/v3-edge-and-learning.md.
 
 ## Decision rules
 
 - **Phase:** Observation auto-flips off in `skills/boot` at `observation_started_at + observation_hours`. Post-obs:
-  - `exploit` — thesis-driven, sized by Kelly, gated by min-edge.
-  - `explore` — mandatory ε-probes, forecast-only (no fill).
-  - `risk_reduction` — reserved; v2 has no auto-SELL.
-- **Min edge (exploit fills):** net-edge floor 300 bps — measured on `edge_net` (net of spread), **not** midpoint distance. See § Net edge.
-- **Sizing:** fractional Kelly `f=0.25`, cap 5% NAV/token. Probes pinned to 0 notional / 0 shares.
-- **Action commitment** (enforced by `skills/persist` audit; canonical in AGENTS.md):
-  - research_window: ≥1 research_note, ≥1 candidate_rank, ≥3 forecast.
-  - trade_window: ≥3 forecast.
+  - `exploit` — thesis-driven, risks capital. Allowed **only** past the edge gate (§ Edge gate). Any miss → forecast-only.
+  - `explore` — forecast-only (no fill). The default for everything that isn't a gate-passer.
+  - `risk_reduction` — reserved; auto-SELL path lands in Phase 5.
+- **Edge gate (the binding exploit gate):** an exploit fill requires ALL of `resolution_parsed == true` ∧ `reference_class != null` ∧ `len(source_providers) >= 2` ∧ `edge_net >= net_edge_floor` (300 bps, measured on `edge_net` — net of spread, **not** midpoint distance). Any miss → forecast-only `explore`, with `decision reason ∈ {resolution_unparsed, no_reference_class, insufficient_sources, edge_below_net_threshold}`. See § Edge gate + § Net edge.
+- **Sizing:** fractional Kelly `f=0.25`, cap 5% NAV/token. `sizing_tier` default `0` (the tier ladder lands in Phase 5). Forecast-only entries pinned to 0 notional / 0 shares.
+- **Forecast target** (daily, routine-aware; enforced by `skills/persist` audit per phase):
+  - research_window: ≥1 research_note, ≥1 candidate_rank, **broad forecast-only batch** (~4–6).
+  - trade_window: **broad forecast-only batch** (~4–6); gate-passers (expected 0–2/day) become bets.
+  - Combined daily target ~8–12 forecasts; only gate-passers risk capital.
   - daily_close: ≥1 recap, ≥1 reflection.
   - overnight_watch: ≥1 nav_snapshot.
-  - Floor miss → `null_cycle` (still pushed, flagged).
+  - pulse / other cycles: emit **no** new forecasts (snapshot only).
+  - Floor miss (no forecasts emitted in a content cycle) → `null_cycle` (still pushed, flagged).
+  - NOTE: the AGENTS.md "Action commitment" mirror still shows the v2 rigid `≥3 forecast` floor — it is synced by the orchestrator in Phase 6.
 - **Market filter:** Gamma `liquidityNum >= 2000`, `endDate <= 90d`, two-sided book, midpoint ≤15min.
 - **Discovery:** universe-first (`state/universe.jsonl` daily cache, then attach research signals).
 
@@ -38,7 +41,22 @@ You **buy at the ask, sell at the bid** — midpoint is never the trade price (`
 edge_net = your_p - best_ask        # YES BUY (executable_price)
 ```
 
-(`best_ask` from `markets.book()`. SELL-side symmetry: `your_p` vs `best_bid`.) `edge_net` is what the min-edge floor is measured against — an exploit fill must clear the **net-edge floor (300 bps)** *after* spread, not midpoint distance. Midpoint stays only as a reference mark and for Kelly payout odds. The binding gate (provenance + net-floor) lands in v3 Phase 2; this section defines the measure it uses.
+(`best_ask` from `markets.book()`. SELL-side symmetry: `your_p` vs `best_bid`.) `edge_net` is what the net-edge floor is measured against — an exploit fill must clear the **net-edge floor (300 bps / 0.03)** *after* spread, not midpoint distance. Midpoint stays only as a reference mark and for Kelly payout odds. The net-floor is one of four conjuncts in the binding § Edge gate below.
+
+### Edge gate (binding; exploit only)
+
+The lesson of the 2026-05-27 Iran trade: the edge was **unverifiable**, not merely thin. So the gate blocks on *provenance*, not just magnitude. An **exploit** fill is allowed only if ALL hold:
+
+```
+resolution_parsed == true           # Gamma `description` fetched + parsed into resolution_criteria
+reference_class    != null          # a NAMED base-rate class…
+len(source_providers) >= 2          # …backed by ≥2 independent sources
+edge_net           >= 0.03          # net-of-spread edge clears the 300 bps floor
+```
+
+Any miss → **forecast-only** (`learning_intent` demoted to `explore`), emit a `decision` with `reason ∈ {resolution_unparsed, no_reference_class, insufficient_sources, edge_below_net_threshold}` and `shares:0`. `skills/sizing` is the enforcement point; `skills/research` pre-screens (a thesis missing parsed `description` or a ≥2-source reference class is demoted to explore-only before sizing). `sizing_tier` is assigned `0` here (the conviction ladder is Phase 5).
+
+> The Iran inputs (single source, invented "0.45–0.55" base rate, `description` never parsed) fail three conjuncts — `resolution_unparsed`, `no_reference_class`, `insufficient_sources` — even though `edge_net ≈ 7pp` cleared the net floor. Magnitude alone would have passed it; provenance is what blocks it.
 
 ### Exploit path
 
@@ -52,24 +70,25 @@ kelly_fraction   = edge_net / (1 - best_ask)       # cost-honest: edge & odds at
 notional         = clamp(0.25 * kelly_fraction * NAV, 0, 0.05 * NAV)
 ```
 
-`edge_net ≤ net-edge floor` (or Kelly ≤ 0) → forecast-only.
+Fill only if the full § Edge gate passes (provenance conjuncts + `edge_net >= 0.03`). Any miss (or Kelly ≤ 0) → forecast-only, demoted to `explore`.
 
-### Explore path
+### Explore path (forecast-only — the default)
 
-ε by candidate rank in cycle: `1→+0.05, 2→0.00, 3→-0.05`.
+Every candidate that doesn't clear the § Edge gate is `explore`: a genuine forecast that risks **no capital**. This is the broad learning batch the two content cycles emit (target ~8–12/day combined). Use your honest estimate, not a synthetic offset:
 
 ```
-your_p   = clamp(market_p + ε, 0.02, 0.98)
+your_p   = your genuine estimate (research-informed where available, else market_p ± small judgment nudge)
 notional = 0, shares = 0
-thesis_id = "explore-rank<N>-eps<Pos|Zero|Neg>"
-feature_tags = ["explore"]
+edge_source = best applicable tag (news_latency|base_rate|structural|sentiment), else "none"
 ```
 
-Always emits `forecast`; never `paper_fill` / `mainnet_order_submitted`.
+A demoted exploit (gate miss) lands here too, tagged with its gate-miss `reason`. Always emits `forecast`; never `paper_fill` / `mainnet_order_submitted`. (The v2 ε-rank probe device is retired — see § Changelog.)
 
 ## Forecast attribution (mandatory fields)
 
 `strategy_version`, `forecast_id`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, `calibration_bucket`, `close_time`, `resolution_criteria`, `disconfirming_signals`, **`learning_intent ∈ {"explore","exploit","risk_reduction"}`**.
+
+**v3 gate/cost fields (mandatory; see `skills/journal` for the schema):** `resolution_parsed` (bool), `reference_class` (named base-rate class, nullable), `edge_source` (tag ∈ {`news_latency`,`base_rate`,`structural`,`sentiment`,`none`}), `best_bid`, `best_ask`, `spread`, `edge_net`, `sizing_tier` (int 0–3; default `0` until the Phase 5 ladder). Exploit forecasts MUST have `resolution_parsed:true` + non-empty `resolution_criteria` + `reference_class != null` + `source_providers` len ≥ 2; explore forecasts may carry `reference_class:null`, `edge_source:"none"`.
 
 ## Calibration ledger (sliced by `learning_intent`)
 
@@ -104,9 +123,9 @@ Statuses: `watch` (full sizing), `probation` (mult 0.5), `demoted` (excluded unt
 | closing-line-value          | watch   |          0 |        1.00 | n/a             | Midpoint drift = interim signal, not truth.       |
 | thin-book-drift             | caution |          0 |        1.00 | n/a             | Need fresh two-sided quotes; drop thin-book.      |
 | correlated-news-markets     | caution |          0 |        1.00 | n/a             | Same fact = same bucket; uncertain = reject.      |
-| explore-rank1-epsPos        | watch   |          0 |        1.00 | n/a             | ε=+0.05 probe; calibration-only, no fill.         |
-| explore-rank2-epsZero       | watch   |          0 |        1.00 | n/a             | ε=0 trust-market baseline.                        |
-| explore-rank3-epsNeg        | watch   |          0 |        1.00 | n/a             | ε=−0.05 probe; calibration-only, no fill.         |
+| explore-rank1-epsPos        | retired |          0 |        0.00 | n/a             | v2 ε-probe; retired in v3 (forecast-batch policy). |
+| explore-rank2-epsZero       | retired |          0 |        0.00 | n/a             | v2 ε-probe; retired in v3.                         |
+| explore-rank3-epsNeg        | retired |          0 |        0.00 | n/a             | v2 ε-probe; retired in v3.                         |
 
 ## Source-quality ledger
 
@@ -158,20 +177,13 @@ Demote → `next_retry_date = today + 14d`. On/after date → `probation, sizing
 
 `brier_provider > brier_market_p + 0.03` over `resolved_n >= 8` (exploit) → `penalty:0.5, status:penalized` (sizing applies `confidence *= 0.5` to citing forecasts). Lifts after 5 resolved cite-events restore `brier_provider <= brier_market_p`.
 
-## Exploration probe policy
+## Forecast batch policy (replaces the v2 ε-probe floor)
 
-Hard floor ≥3 `forecast`/cycle in `trade-window` and `research-window`. Slot allocation:
+`trade-window` and `research-window` each emit a **broad forecast-only batch** (~4–6 each, ~8–12/day combined) over the top ranked candidates. Every entry is `explore` (forecast-only) unless it clears the § Edge gate, in which case it becomes an `exploit` bet (expected 0–2/day). Pulse / other cycles emit **no** new forecasts.
 
-| exploit_eligible | exploit fills | explore probes |
-| ----------------:| -------------:| --------------:|
-| 0                | 0             | 3              |
-| 1                | 1             | 2              |
-| 2                | 2             | 1              |
-| ≥3               | 3             | 0              |
-
-Probes never duplicate a market that already has any forecast this cycle. Dedupe key for today's probes: `paper:<market_id>:<token_id>:explore:<UTC-date>`.
-
-Once `Σ exploit resolved_n >= 30`, floor drops to ≥1 probe/cycle (still mandatory).
+- Forecast your honest `your_p` per candidate; no synthetic ε offset. Tag each with `edge_source`.
+- Never duplicate a market that already has any forecast this cycle. Dedupe key: `paper:<market_id>:<token_id>:explore:<UTC-date>`.
+- No fixed numeric hard floor per cycle; the daily routine-aware target governs (see § Decision rules → Forecast target). A content cycle that emits zero forecasts is a `null_cycle`.
 
 ## Smartness threshold (human hint)
 
@@ -183,7 +195,7 @@ OLS slope of daily `brier_skill` over 30d negative for 14 consecutive UTC dates 
 
 ## Changelog
 
-- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1 (this commit): liquidation-priced fills/marks + `edge_net`. Snapshot: `strategy/history/2026-05-29-v2.md`.
+- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1: liquidation-priced fills/marks + `edge_net`. Phase 2 (this commit): binding edge gate (provenance conjuncts + net-floor), forecast/trade split, new mandatory fields (`resolution_parsed`, `reference_class`, `edge_source`, `best_bid`/`best_ask`/`spread`/`edge_net`, `sizing_tier`), v2 ε-probe floor retired for a daily routine-aware forecast target. Snapshot: `strategy/history/2026-05-29-v2.md`.
 - v2 — 2026-05-26 — cold-start deadlock fix: mandatory exploration, `learning_intent` taxonomy, sliced calibration ledger, action commitment per cycle, relaxed filter (liq≥2000, end≤90d), universe-first discovery. Snapshot: `strategy/history/2026-05-26-v1.md`.
 - v1 — 2026-05-24 — self-learning contract, attribution fields, smartness gates. Snapshot: `strategy/history/2026-05-24-v0.md`.
 - v0 — 2026-05-24 — observation-only seed.
