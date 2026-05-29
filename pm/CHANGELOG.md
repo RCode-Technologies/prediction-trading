@@ -3,9 +3,38 @@
 All notable changes to this project are tracked here. Newest entries on top.
 Versioning is loose semver-ish: `v0.x` until first mainnet trade, then `v1.0`.
 
-## [Unreleased]
+## [Unreleased] — the v3 epoch
 
-### Proposed (design only — not implemented)
+**v3** is the current epoch — *Edge, Honest Accounting, Fast Learning*, now also **Self-Direction**
+and **Repo Hygiene**. Self-direction (`envision`/`enact`) and `groom` shipped 2026-05-29 (paper-mode)
+as the first implemented slices of v3; the edge/accounting/learning package below is still design-only.
+There is no separate `v0.4` — those changes are folded into v3.
+
+### Implemented — Self-direction (envision / enact), 2026-05-29
+
+The supervisor no longer has to ask for a version bump. **`skills/envision`** (daily, agent-owned)
+reflects on the whole system and authors capability proposals into `proposals/`; on Sundays
+**`skills/enact`** (≤1/week, protected core) self-implements one low-risk, reversible, paper-only,
+denylist-clean proposal as a single revertible commit, then arms auto-rollback. Bounded by a
+human-owned constitution (`config/autonomy.md`) the agent cannot amend, enforced by three gates keyed
+to commit identity: `boot` integrity audit, `persist` write gate, `circuit-breaker`
+`protected_core_violation`. New journal events `vision` / `proposal` / `enactment` (`enactment` notify
+is suppression-exempt). Nothing touching guardrails / capital / breaker / mainnet may ever self-enact;
+the human vetoes by `git revert` / `LEDGER.md` status (standing ≥7-day window). See PRD
+§"Folded into v3", [plan](plans/v3-edge-and-learning.md) Phase 7,
+[ADR 0023](adrs/0023-bounded-agent-self-direction.md).
+
+### Implemented — Repo hygiene (groom), 2026-05-29
+
+**`skills/groom`** (weekly, Sundays) keeps the brain lean and AI-navigable: the **sole** rotator of
+`state/trade-log.jsonl` + `state/forecasts.resolved.jsonl` into `state/archive/` (30d / 90d; the cutoff
+never strands a line tied to an open forecast — atomic, no-drop, idempotent), plus a token-budget +
+referential-integrity lint of the auto-loaded set. Report-only on core cognition files; findings ride
+the weekly recap. **Weekly by design** — the per-cycle invocation is the metered cost. Adds the `groom`
+journal event + `state/archive/` to the repo layout. [plan](plans/v3-edge-and-learning.md) Phase 8,
+[ADR 0024](adrs/0024-weekly-groom.md).
+
+### Proposed (design only — not implemented) — Edge, Honest Accounting, Fast Learning
 
 - **v3 design package — Edge, Honest Accounting, and Fast Learning.** Drafted
   2026-05-29 after the US x Iran trade (`2354045`) showed a ~-34% position

@@ -1,10 +1,12 @@
-# PRD — v3: Edge, Honest Accounting, and Fast Learning
+# PRD — v3: Edge, Honest Accounting, Fast Learning — + Self-Direction & Repo Hygiene
 
-- **Status:** Proposed (awaiting supervisor review — not implemented)
+- **Status:** **Partially implemented.** Self-direction (`envision`/`enact`) + repo hygiene (`groom`)
+  shipped 2026-05-29 (paper-mode) — see §"Folded into v3". The Edge / Honest Accounting / Fast Learning
+  package below remains **proposed** (awaiting supervisor review — not implemented).
 - **Date:** 2026-05-29
-- **Owner:** Theo (supervisor; owns `config/guardrails.md` + mode flips + the scheduled-invocation budget). Strategy content is agent-owned.
+- **Owner:** Theo (supervisor; owns `config/guardrails.md` + `config/autonomy.md` + mode flips + the scheduled-invocation budget). Strategy + proposals content is agent-owned.
 - **Drafted by:** Claude (Opus) design-review session, 2026-05-29.
-- **Related:** extends [PRD v1-instruction-pack](v1-instruction-pack.md); proposes **strategy v3** (supersedes v2); amends ADR 0003 (paper fills), the v2 "no auto-SELL" rule, the flat-5%-cap framing, and `AGENTS.md` §"Token economy (read first)". New ADRs proposed: 0017–0022 (listed below).
+- **Related:** extends [PRD v1-instruction-pack](v1-instruction-pack.md); proposes **strategy v3** (supersedes v2); amends ADR 0003 (paper fills), the v2 "no auto-SELL" rule, the flat-5%-cap framing, and `AGENTS.md` §"Token economy (read first)". ADRs: 0017–0022 proposed (listed below); **0023 (autonomy charter) + 0024 (weekly groom) created + implemented** as the first slices of v3.
 - **Related plan:** [../plans/v3-edge-and-learning.md](../plans/v3-edge-and-learning.md)
 
 ---
@@ -62,6 +64,49 @@ Mapped to the supervisor's four asks — *faster, better, more precise, profitab
 9. **Live within the invocation budget** *(the explicit ask).* Operate at ~10 invocations/day, ≤15 hard. Repurpose heartbeats into useful pulses. Treat the slack as justified-only.
 
 ---
+
+## Folded into v3 — Self-direction + Repo hygiene (implemented 2026-05-29)
+
+Two capabilities were built ahead of the edge/accounting/learning package and now belong to the v3
+epoch. Both are **paper-mode**, ride the existing `daily-close` cycle (**zero new cron** — the ≤15/day
+budget below is intact), and are recorded as ADRs **0023–0024**. They replace what was briefly drafted
+as a standalone "v0.4" — there is no separate v0.4 version; this is v3.
+
+### Self-direction (envision / enact) — ADR 0023
+
+Closes the last manual bottleneck: **the supervisor no longer has to ask for a version bump.** `reflect`
+evolves `strategy/current.md` *within* current capabilities; **`skills/envision`** (daily, agent-owned)
+reflects on the whole system and **authors capability proposals** into `proposals/` — new skills, new
+metrics, AGENTS.md/guardrail *recommendations*, market-structure pivots, moonshots, the mission itself.
+A rotating daily lens + a MAX-reasoning Sunday deep pass keep it generative; every proposal carries
+evidence, a steelman of why it's wrong, and the cheapest falsifying experiment. On Sundays
+**`skills/enact`** (≤1/week, protected core) self-implements one `self_approved`, non-vetoed,
+denylist-clean, reversible, paper-only proposal as a single revertible commit, then arms auto-rollback.
+
+The keystone is **a constitution the agent cannot amend** (`config/autonomy.md`, human-owned): identity
+is the trust boundary (agent commits as `Polymarket Trading Agent`, humans as themselves), and a
+**protected core** — `config/{autonomy,guardrails}.md`, `AGENTS.md`,
+`skills/{boot,persist,circuit-breaker,enact,recalibrate,risk}` — is enforced three ways: `enact`'s
+intent gate (won't *write* a denylist path), `persist`'s write gate (won't *commit* a protected path
+under the agent identity), and `boot`'s integrity audit (halts `protected_core_violation` if one is
+agent-authored). Nothing touching guardrails, capital/portfolio, the breaker, or mainnet may ever be
+self-enacted — those proposals are `human_application`. Veto is by repo action (`git revert` /
+`LEDGER.md` status) with a standing ≥7-day window. Workspace: `proposals/{VISION.md, LEDGER.md,
+<date>-<slug>.md, horizon.jsonl}`; journal events `vision` / `proposal` / `enactment` (governance — no
+recalibrate hook). See [plan](../plans/v3-edge-and-learning.md) Phase 7.
+
+### Repo hygiene (groom) — ADR 0024
+
+**`skills/groom`** (weekly, Sundays, from `daily-close`) keeps the brain lean and AI-navigable. It is
+the **sole** rotator of `state/trade-log.jsonl` + `state/forecasts.resolved.jsonl` (a documented
+exception to append-only), moving aged lines into `state/archive/` (30d / 90d retention; the cutoff =
+`min(now−30d, oldest open-forecast emitted_at)` never strands a line tied to an unresolved forecast, so
+`recalibrate`'s trade-log recovery path is preserved — atomic, no-drop, idempotent). It also lints the
+auto-loaded set against token budgets + referential integrity (dead skill/link refs, INDEX orphans,
+schema drift, stale lock). **Weekly by design:** per-cycle tokens are the metered cost, so running
+7×/week to fight ~35 log lines/day would be self-defeating; findings fold into the weekly recap under
+*Recommendations for human review*. Report-only on core cognition files. See
+[plan](../plans/v3-edge-and-learning.md) Phase 8.
 
 ## Non-goals (v3)
 
@@ -162,6 +207,16 @@ Kept as a list so the *decisions* are redline-able without prematurely creating 
 - **0020 — Risk doctrine: tiered sizing ladder + equity governors + disconfirmation exits + portfolio heat.** Replaces the flat 5% cap as the *primary* sizing rule and the v2 "no auto-SELL." *Complements ADR 0014.* Guardrail values are human-owned.
 - **0021 — Cost-model reprioritization.** Scarce resources reordered (capital > correctness > data > attention > paid invocations > context tokens); the metered unit is the scheduled invocation. *Amends `AGENTS.md` §"Token economy".*
 - **0022 — Scheduled-invocation budget.** ≤15/day (≈10 default); repurpose heartbeats into useful pulses; slack spent only on data-justified improvements; never exceed 15 without explicit cost-approval.
+
+**Created + implemented (folded into v3, 2026-05-29 — these are real Accepted files, not reservations):**
+
+- **[0023 — Bounded agent self-direction, governed by a protected core it cannot amend](../adrs/0023-bounded-agent-self-direction.md).**
+  `envision` authors proposals daily; `enact` self-implements ≤1/week (paper, reversible); a human-owned
+  constitution (`config/autonomy.md`) + 3-gate enforcement keyed to commit identity bounds it. The agent
+  is maximally free inside the envelope and structurally unable to widen it.
+- **[0024 — Weekly groom for token-economy hygiene + log rotation](../adrs/0024-weekly-groom.md).** The
+  sole `trade-log.jsonl` rotator (a documented exception to append-only); weekly Sunday cadence chosen
+  because the per-cycle invocation is the metered cost; report-only on core cognition files.
 
 ---
 

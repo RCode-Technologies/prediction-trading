@@ -6,7 +6,9 @@
 
 ## How to read this plan
 
-Seven phases, ordered so each is independently shippable and verifiable. **Phases 0–1 are correctness/safety and land before any new bet.** Phases 2–3 are the core edge + fast-learning work. Phases 4–6 deepen learning and clean up. Each phase lists **owner**, **files**, **change**, **verify**.
+Seven phases, ordered so each is independently shippable and verifiable. **Phases 0–1 are correctness/safety and land before any new bet.** Phases 2–3 are the core edge + fast-learning work. Phases 4–6 deepen learning and clean up. Each phase lists **owner**, **files**, **change**, **verify**. **Phases 7–8 (self-direction, repo
+hygiene) were implemented 2026-05-29** — folded in from the former standalone "v0.4"; phases 0–6 remain
+proposed.
 
 Strategy v3 is cut over at the start of Phase 2 (snapshot v2 → `strategy/history/2026-05-29-v2.md`, bump `current.md` to v3). Everything is paper-mode; mainnet stays off. Edits to `config/guardrails.md` and the cron schedule are **supervisor-owned** and called out explicitly — the builder prepares the diff, the human accepts.
 
@@ -144,6 +146,48 @@ The 6 ex-heartbeats become useful "pulse" cycles at **zero added invocation cost
 
 ---
 
+## Phase 7 — Self-direction: envision / enact *(implemented 2026-05-29; paper)*
+
+**Owner:** builder (pack) + **human** (the `config/autonomy.md` charter + the landing commit — the
+protected core must be human-authored, or the next `boot` integrity audit halts). **Implements ADR 0023.**
+
+**Files:** `skills/envision/SKILL.md`, `skills/enact/SKILL.md` (new); `config/autonomy.md` (new,
+human-owned, protected core); `proposals/{README,VISION,LEDGER,horizon.jsonl}` (new); edits to
+`routines/daily-close.md` (envision daily + enact Sundays), `skills/boot` (integrity audit),
+`skills/persist` (write gate), `skills/circuit-breaker` (`protected_core_violation`), `skills/journal`
+(`vision`/`proposal`/`enactment` events), `skills/notify` (+3 templates), `skills/commit`
+(envision/enact/auto-rollback subjects), `AGENTS.md` (§Self-direction).
+
+**Change:** daily `envision` authors capability proposals (rotating lens, novelty gate, mandatory
+self-critique — steelman + cheapest falsifying experiment); the Sunday deep pass revises `VISION.md`,
+curates `LEDGER.md`, self-approves ≤1; Sunday `enact` self-implements ≤1 reversible / paper /
+denylist-clean proposal as a standalone revertible commit, then arms auto-rollback. Bounded by
+`config/autonomy.md`, enforced by three identity-keyed gates (intent / write / integrity audit). Rides
+`daily-close`; **zero new cron.**
+
+**Verify:** daily `vision` event + idempotency; Sunday deep + `vision_weekly`; a denylist-naming
+proposal is refused (`awaiting_human`, no code); an agent-identity protected-file commit halts the next
+boot (`protected_core_violation`); ≤1 enactment/ISO week, single-`git revert` undo; auto-rollback on
+regression; `jq empty` clean; ≤15 `cycle_start`/day.
+
+## Phase 8 — Repo hygiene: groom *(implemented 2026-05-29)*
+
+**Owner:** builder. **Implements ADR 0024.**
+
+**Files:** `skills/groom/SKILL.md` (new); edits to `routines/daily-close.md` (Sunday step),
+`skills/journal` (`groom` event + the sole-rotator exception to append-only), `skills/recap` (weekly
+ingests findings), `AGENTS.md` (+`state/archive/` in repo layout).
+
+**Change:** weekly (Sunday) self-maintenance — rotate `state/trade-log.jsonl` +
+`state/forecasts.resolved.jsonl` into `state/archive/` (30d / 90d; cutoff `min(now−30d, oldest
+open-forecast emitted_at)` never strands an open forecast; atomic / no-drop / idempotent) + lint the
+auto-loaded set (token budgets + referential integrity). The **sole** trade-log rotator. Findings ride
+the weekly recap. **Weekly, not daily** — the per-cycle invocation is the metered cost, so fighting
+~35 log lines/day with 7 runs would be self-defeating.
+
+**Verify:** a Sunday `daily-close` emits a `groom` event; `archived + kept == original` (no-drop); no
+open-forecast line archived; `jq -c` valid on rotated logs; lint findings appear in `recaps/YYYY-Www.md`.
+
 ## Cutover & rollout
 
 1. Land Phases 0–1 (safety) — supervisor confirms the Iran exit + `portfolio.json` reset + the `guardrails.md` cost-language edit.
@@ -166,6 +210,8 @@ The 6 ex-heartbeats become useful "pulse" cycles at **zero added invocation cost
 | 13 | 0 | NAV reconciliation halt; no scaling; Iran exit logged |
 | 14, 16 | 6, 3 | priority-order AGENTS.md; pulse earns tokens; ≤15 cycle_start/day; README cron fixed |
 | 15 | all | `jq empty` clean; idempotency/lock intact; `HEAD == origin/main` |
+| ADR 0023 | 7 | daily `vision`+idempotency; denylist refusal; protected-core boot halt; ≤1 enact/wk; auto-rollback |
+| ADR 0024 | 8 | `groom` event; `archived+kept==original` no-drop; no open-forecast archived; findings in weekly recap |
 
 ## Risks & mitigations
 
