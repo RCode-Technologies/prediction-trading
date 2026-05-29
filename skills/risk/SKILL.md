@@ -34,6 +34,37 @@ Per position freshness:
 
 ### `rolling_24h_pnl() → {current, baseline, pnl_usdc, pnl_pct, source}`
 
+### `peak_nav() → {peak_nav_usdc, ts}`
+
+Max NAV over history: `max(nav_snapshots[].nav_usdc, current_nav)`. Empty snapshots → `starting_capital`. All values liquidation-marked (longs at `best_bid`). Used by the drawdown-from-peak governors.
+
+### `drawdown_from_peak() → {current, peak, drawdown_pct}` (v3)
+
+```
+drawdown_pct = (current_nav - peak_nav) / peak_nav          # ≤ 0
+```
+
+`circuit-breaker` reads it for the −8% probation / −15% freeze governors (`config/guardrails.md` § Equity governors). `current` from `nav()` (liquidation-marked); `peak` from `peak_nav()`.
+
+### `portfolio_heat() → {heat_pct, bucket_count, buckets[]}` (v3)
+
+```
+heat_pct = Σ_open (position.shares * mark_liquidation) / nav_usdc          # current liquidation-risk / NAV
+```
+
+Aggregates correlated positions into one bucket per § Correlation (`bucket_count` = distinct uncorrelated buckets). `circuit-breaker` (heat-breach trigger) and `sizing` (pre-fill heat check + Tier-3 `heat < 0.10` gate) both read it. Stale marks flow through `nav()`'s `stale_flags`.
+
+### `pnl_from_entry(position) → {pnl_pct, pnl_usdc, mark_liquidation, avg_price}` (v3)
+
+Per-position mark-from-entry, for the disconfirmation stop:
+
+```
+pnl_pct  = (mark_liquidation - position.avg_price) / position.avg_price    # long; ≤ -0.25 ⇒ stop
+pnl_usdc = position.shares * (mark_liquidation - position.avg_price)
+```
+
+`mark_liquidation = best_bid` (the SELL-side executable price — what you'd actually realise). Stale book → flag stale, return last good mark (caller decides; the stop does not fire on a stale mark alone).
+
 ### `freshness_summary() → {total_positions, stale_count, stale_ratio}`
 
 `circuit-breaker` uses `stale_ratio > 0.5` to skip the loss check.

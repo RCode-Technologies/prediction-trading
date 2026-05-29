@@ -15,12 +15,13 @@ Crystallize day's signals. Recap, reflect, daily Telegram. Sundays: also weekly.
 ## Steps
 
 1. `boot`
-2. `circuit-breaker.evaluate()` — cp1. Halted → daily summary if due, jump to 11.
+2. `circuit-breaker.evaluate()` — cp1 (v3: 24h halt **+ drawdown-from-peak governors + heat breach**). Halted/freeze → daily summary if due, jump to 11.
 3. **Phase-miss check.** Today's `phase_completed` for `research_window` + `trade_window`. Emit `phase_missed` per gap.
 4. `markets` — final fresh-price snapshot on open positions (CLOB).
 5. `circuit-breaker.evaluate()` — cp2 (post-marks).
 6. `risk.nav()` + `journal.nav_snapshot`.
-7. `circuit-breaker.evaluate()` — cp3 (post-snapshot). Halted → surface in recap.
+7. `circuit-breaker.evaluate()` — cp3 (post-snapshot; governors + heat on fresh NAV). Halted → surface in recap.
+7a. **Disconfirmation-stop exit check (v3; `config/guardrails.md` § Disconfirmation stop).** For each open position: `risk.pnl_from_entry(position)` + scan `disconfirming_signals[]` against the day's marks/news. `pnl_pct <= -0.25` (non-stale) **or** a named disconfirming event → load `skills/sizing` with `learning_intent:"risk_reduction"` + the position + `stop_reason` → SELL via `skills/trade` (reducing/closing `paper_fill` at `best_bid`); surface the exit in recap. Exempt from any active freeze/probation. No trip → continue.
 7b. **`recalibrate.sweep()`** — final daily sweep. Resolves open forecasts past `close_time`. Writes `state/scorecard.json` + `state/calibration.json`.
 7c. **Sunday only** (`date '+%u' == 7`): load `skills/groom` and run it — rotate append-only logs out of the hot path + lint the brain for token bloat / drift. Returns `findings[]` for step 8. Non-Sunday: skip (groom is weekly; see `skills/groom` § Why weekly).
 8. `recap` — write `recaps/YYYY-MM-DD.md` (reads `state/scorecard.json`). Sunday: also `recaps/YYYY-Www.md`, listing groom `findings[]` under *Recommendations for human review*.
@@ -33,12 +34,12 @@ Crystallize day's signals. Recap, reflect, daily Telegram. Sundays: also weekly.
 
 ## Source budget
 
-0 research. CLOB freshness only + ≤1 Gamma for `recalibrate.sweep` resolution lookup. Sunday groom adds 0 sources (local file work only).
+0 research. CLOB freshness only (+ ≤1 CLOB book re-check per `risk_reduction` SELL) + ≤1 Gamma for `recalibrate.sweep` resolution lookup. Sunday groom adds 0 sources (local file work only).
 
-## Position-close policy
+## Position-close policy (v3)
 
 - Near-resolution (`close_time < now + 12h`) flagged in recap.
-- No auto-SELL in v2.
+- **v3 `risk_reduction` exit (replaces v2 "no auto-SELL").** Step 7a runs the disconfirmation stop: a held position at **−25% mark-from-entry** (non-stale, liquidation-marked) **or** a materialised named disconfirming event is reduced/closed via `skills/sizing` (`learning_intent:"risk_reduction"`) → `skills/trade` (paper: reducing/closing `paper_fill` at `best_bid`). The exit is logged as a `risk_reduction` `decision` + `paper_fill` and surfaced in the recap (stop reason + realized P&L). Exits are exempt from an active drawdown freeze/probation (you may always reduce risk).
 - Halt active + mainnet position with `close_time < now + 12h` → recap highlights residual exposure.
 
 ## Failure modes

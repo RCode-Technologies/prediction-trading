@@ -16,9 +16,9 @@ v3 separates **learning** (forecast broadly, pay nothing) from **earning** (bet 
 - **Phase:** Observation auto-flips off in `skills/boot` at `observation_started_at + observation_hours`. Post-obs:
   - `exploit` — thesis-driven, risks capital. Allowed **only** past the edge gate (§ Edge gate). Any miss → forecast-only.
   - `explore` — forecast-only (no fill). The default for everything that isn't a gate-passer.
-  - `risk_reduction` — reserved; auto-SELL path lands in Phase 5.
+  - `risk_reduction` — a reducing/closing SELL on the **disconfirmation stop** (−25% mark-from-entry or a named disconfirming event). See § Risk doctrine. (v2's "no auto-SELL" is replaced.)
 - **Edge gate (the binding exploit gate):** an exploit fill requires ALL of `resolution_parsed == true` ∧ `reference_class != null` ∧ `len(source_providers) >= 2` ∧ `edge_net >= net_edge_floor` (300 bps, measured on `edge_net` — net of spread, **not** midpoint distance). Any miss → forecast-only `explore`, with `decision reason ∈ {resolution_unparsed, no_reference_class, insufficient_sources, edge_below_net_threshold}`. See § Edge gate + § Net edge.
-- **Sizing:** fractional Kelly `f=0.25`, cap 5% NAV/token. `sizing_tier` default `0` (the tier ladder lands in Phase 5). Forecast-only entries pinned to 0 notional / 0 shares.
+- **Sizing:** fractional Kelly `f=0.25`, then the **conviction ladder** (Tier 0–3, caps `{0, 2%, 5%, 10%}` NAV) — size is *earned* by bucket skill. The edge gate runs first; only a gate-passer reaches a tier above 0. See § Risk doctrine. Forecast-only entries pinned to 0 notional / 0 shares.
 - **Forecast target** (daily, routine-aware; enforced by `skills/persist` audit per phase):
   - research_window: ≥1 research_note, ≥1 candidate_rank, **broad forecast-only batch** (~4–6).
   - trade_window: **broad forecast-only batch** (~4–6); gate-passers (expected 0–2/day) become bets.
@@ -83,6 +83,33 @@ edge_source = best applicable tag (news_latency|base_rate|structural|sentiment),
 ```
 
 A demoted exploit (gate miss) lands here too, tagged with its gate-miss `reason`. Always emits `forecast`; never `paper_fill` / `mainnet_order_submitted`. (The v2 ε-rank probe device is retired — see § Changelog.)
+
+### Risk doctrine (tiers + governors + stop)
+
+> **Default to capital preservation. Earn the right to be aggressive. Skill is the only license to size.**
+
+The flat 5%/token cap (which sized a fabricated coin-flip identically to a proven edge) is replaced by a conviction ladder + equity governors + portfolio heat + a disconfirmation stop. Numbers are **human-owned** in `config/guardrails.md`; this section is the strategy-level summary `skills/sizing` + `skills/circuit-breaker` enforce. The § Edge gate runs **first** — only a gate-passer is tier-eligible above 0.
+
+**Conviction ladder** (every `decision` carries `sizing_tier` + the `tier_preconditions[]` it cleared; Tier ≥ 2 requires a logged `proven_skill_ref`):
+
+| Tier | Name | Preconditions (all) | Max size |
+|---|---|---|---|
+| 0 | Observe | default — no proven bucket skill, or `edge_net < floor`, or resolution unparsed | 0% (forecast-only) |
+| 1 | Lean | gate-pass (`edge_net ≥ floor` + parsed + ref-class ≥2 sources) + bucket `clv_mean ≥ 0` | 0.5–2% NAV |
+| 2 | Conviction | Tier 1 + *proven* bucket (`clv_mean > 0`, `clv_n ≥ 20`, or `brier_skill > 0`) + hard near-term catalyst | ≤ 5% NAV |
+| 3 | Degen (earned) | Tier 2 + `edge_net ≥ 2× floor` + high calibration confidence + uncorrelated + heat < 10% | ≤ 10% NAV (hard ceiling) |
+
+An **unproven** `edge_source` bucket is capped ≤ Tier 1 regardless of edge size; a bucket with `clv_mean < 0` ⇒ Tier 0. Until buckets earn skill the whole book sits at Tier ≤ 1 — **early v3 mostly will not bet, and that is the point.**
+
+**Portfolio heat:** `portfolio_heat = Σ_open(shares × mark_liquidation) / NAV ≤ 25%` across ≤ 4 uncorrelated buckets; a new exploit that would breach is rejected. Tier 3 only when heat < 10%.
+
+**Equity governors (primary control, replace the toothless single breaker):**
+- **−8% from peak NAV** → all sizing × 0.5 (`governor_mult:0.5`, probation) + notify; lifts on recovery above the line.
+- **−15% from peak** → forecast-only freeze (every candidate → Tier 0); **human review to resume**; exits still allowed.
+- **−10% / 24h** retained as the catastrophic hard halt (the everyday control is now drawdown-from-peak).
+- Heat-breach (>25% or >4 buckets) → new exploits rejected (not a halt; existing positions ride).
+
+**Disconfirmation stop (`risk_reduction` SELL — non-negotiable):** a held position is reduced/closed when `pnl_from_entry ≤ −25%` (mark-from-entry, liquidation-marked) **or** a named `disconfirming_signals` item materialises. Paper: a reducing/closing `paper_fill` at `best_bid` (`skills/sizing` § Risk-reduction SELL path → `skills/trade`). This is the control the Iran position never had — v2 could see its thesis break and could not act. Exits are exempt from the freeze/halt.
 
 ## Forecast attribution (mandatory fields)
 
@@ -208,7 +235,7 @@ OLS slope of daily `brier_skill` over 30d negative for 14 consecutive UTC dates 
 
 ## Changelog
 
-- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1: liquidation-priced fills/marks + `edge_net`. Phase 2: binding edge gate (provenance conjuncts + net-floor), forecast/trade split, new mandatory fields (`resolution_parsed`, `reference_class`, `edge_source`, `best_bid`/`best_ask`/`spread`/`edge_net`, `sizing_tier`), v2 ε-probe floor retired for a daily routine-aware forecast target. Phase 3 (this edit, scorecard section only): CLV promoted to headline skill metric while `resolved_n<30` (Brier "pending ground truth"); scorecard gains `clv_mean`/`clv_hit_rate`/`clv_n` per intent + `by_edge_source[]`, snapshotted on pulse/overnight-watch/daily-close (zero added invocations). Snapshot: `strategy/history/2026-05-29-v2.md`.
+- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1: liquidation-priced fills/marks + `edge_net`. Phase 2: binding edge gate (provenance conjuncts + net-floor), forecast/trade split, new mandatory fields (`resolution_parsed`, `reference_class`, `edge_source`, `best_bid`/`best_ask`/`spread`/`edge_net`, `sizing_tier`), v2 ε-probe floor retired for a daily routine-aware forecast target. Phase 3 (scorecard section only): CLV promoted to headline skill metric while `resolved_n<30` (Brier "pending ground truth"); scorecard gains `clv_mean`/`clv_hit_rate`/`clv_n` per intent + `by_edge_source[]`, snapshotted on pulse/overnight-watch/daily-close (zero added invocations). Phase 5 (this edit, § Risk doctrine + Decision-rule sizing/risk_reduction bullets only): flat 5% cap replaced by the conviction ladder (Tier 0–3, caps `{0,2%,5%,10%}`, size earned by bucket skill, 10% hard ceiling), portfolio heat ≤25%/≤4 buckets, drawdown-from-peak governors (−8% probation ×0.5 / −15% freeze; −10%/24h retained as catastrophic halt), and the `risk_reduction` disconfirmation stop (−25% from entry or named event → reducing/closing SELL) replacing v2's no-auto-SELL. Enforced by `skills/{sizing,circuit-breaker,risk}` + `config/guardrails.md` (human-owned). Snapshot: `strategy/history/2026-05-29-v2.md`.
 - v2 — 2026-05-26 — cold-start deadlock fix: mandatory exploration, `learning_intent` taxonomy, sliced calibration ledger, action commitment per cycle, relaxed filter (liq≥2000, end≤90d), universe-first discovery. Snapshot: `strategy/history/2026-05-26-v1.md`.
 - v1 — 2026-05-24 — self-learning contract, attribution fields, smartness gates. Snapshot: `strategy/history/2026-05-24-v0.md`.
 - v0 — 2026-05-24 — observation-only seed.
