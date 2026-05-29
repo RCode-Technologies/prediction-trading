@@ -1,94 +1,81 @@
 ---
 name: reflect
-description: Daily self-review. Scores forecasts, applies smartness gates, may edit strategy/current.md. Only file it may edit.
-inputs: last 24h + trailing unresolved forecasts, strategy/current.md, recent recaps/
+description: Daily governance. Reads state/scorecard.json (kept fresh by recalibrate), applies smartness gates, may edit strategy/current.md. Only file it may edit.
+inputs: state/scorecard.json, state/calibration.json, strategy/current.md, recent recaps/
 outputs: strategy/current.md (if edited) + history snapshot, reflection event
 ---
 
 # Reflect
 
-Runs once/UTC date from `daily-close`. Snapshot-then-edit. Learning is empirical, not monotonic.
+Once/UTC date from `daily-close`. Governance, not recomputation — `skills/recalibrate` keeps metrics fresh.
 
 ## Hard rules
 
-- **Only edits `strategy/current.md`.** Never guardrails, AGENTS, routines, skills.
-- **Snapshot on every edit** to `strategy/history/YYYY-MM-DD-vN.md`.
+- Only edits `strategy/current.md`.
+- Snapshot on every edit to `strategy/history/YYYY-MM-DD-vN.md`.
 - Record uncertainty; never overfit sparse data.
 
 ## Steps
 
 1. **Idempotency.** Grep trade-log for `event_type=="reflection" date:<today UTC>` → if found, exit.
 
-2. **Build dataset.** Today's events + unresolved forecasts from trailing 30d that now have resolution or fresh midpoint. Join by `forecast_id` (else `market_id`/`token_id`/`ts`). Keep: `strategy_version`, `thesis_id`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, `calibration_bucket`, `close_time`, decision/fill linkage.
+2. **Build dataset.** Today's events + trailing-30d unresolved forecasts now resolved or with fresh midpoint. Join by `forecast_id` (fallback: `market_id`/`token_id`/`ts`). Keep all attribution fields incl. `learning_intent`.
 
-3. **Score.** Resolved: Brier `(your_p - outcome)^2`, hit/miss, optional log loss (clamp away from 0/1). Unresolved: forecast vs current midpoint / closing line; flag drift (not truth). Fills: realized P&L if resolved, MTM if open.
+3. **Score.** Resolved: Brier `(your_p - outcome)^2`, hit/miss. Unresolved: forecast vs current midpoint / CLV (drift, not truth). Fills: realized P&L if resolved, MTM if open.
 
-4. **Attribute** by strategy version, thesis, feature tag, market class, `source_providers`. Both positive + negative evidence. Today's `recaps/<date>.md` has most of this — read first, recompute only gaps.
+4. **Attribute** by `strategy_version`, `thesis_id`, `feature_tags`, `learning_intent`, market class, `source_providers`. Today's `recaps/<date>.md` has most of this; recompute only gaps.
 
-5. **Anti-overfitting gates.** Rule may tighten **immediately** on severe risk miss, correlation surprise, stale-mark failure, source quality failure. Otherwise need ≥1 of:
-   - 5 resolved forecasts for same thesis/tag/class,
-   - 8 unresolved with consistent favorable/adverse drift across ≥2 UTC dates,
+5. **Anti-overfitting gates.** Tighten immediately on severe risk miss / correlation surprise / stale-mark failure / source quality failure. Otherwise need ≥1 of:
+   - 5 resolved for same thesis/tag/class,
+   - 8 unresolved with consistent adverse drift across ≥2 UTC dates,
    - weekly recap showing same lesson across independent markets.
    
-   Weaker → add to **Pending evidence** only.
+   Weaker → **Pending evidence** only.
 
-6. **Smartness scorecard.** Read today's `recaps/<date>.md` "Smartness scorecard" fenced JSON + trailing 30d slice. If absent, recompute from trade-log:
-   - `brier_agent`, `brier_market_p`, `brier_skill`
-   - `calibration_slope`, `calibration_intercept` (OLS over `your_p` vs outcome)
-   - `auc`, `kl_vs_market`, `drift_skill`, `rejected_drift`
-   - per-provider `{resolved_n, brier_provider, brier_market_p}`
-   - per-`feature_tag` `{resolved_n, brier_tag, brier_market_p}`
+6. **Smartness scorecard.** Read from `state/scorecard.json` (preference order):
+   1. `state/scorecard.json` if `updated_at >= now - 12h` → use directly.
+   2. Today's `recaps/<date>.md` fenced JSON → if scorecard stale.
+   3. Recompute from `state/forecasts.resolved.jsonl` (slow path).
    
-   Hold in memory; write into `metrics` of the `reflection` event in step 9.
+   **v2 cold-start carve-out:** when `exploit.resolved_n < 5`, regression gate uses `explore.calibration_slope` instead of `exploit.brier_skill`.
 
-7. **Convergent calibration update law** (per `strategy/current.md`). Per bucket with `resolved_n >= 10`:
-   ```
-   shrink     = min(1.0, resolved_n / 30)
-   adjustment = clamp(shrink * (hit_rate - bucket_midpoint), -0.08, +0.08)
-   ```
-   These are the **proposed** v(N+1) calibration ledger. Don't write yet.
+7. **Convergent calibration update law.** Per exploit bucket with `resolved_n >= 10`: per `strategy/current.md`. Proposed v(N+1), don't write yet.
 
-8. **Reflection-quality gate.** Simulate v(N+1) on trailing 14d resolved:
-   1. Re-derive each `your_p` under proposed v(N+1) calibration + feature-tag + source penalties.
-   2. Recompute `brier_agent` → `brier_skill_after`.
-   3. Read `brier_skill_before` from today's scorecard.
-   4. If `brier_skill_after < brier_skill_before - 0.005` AND not a risk-tightening edit → **refuse**. Emit `reflection edited:false reason:"regression_blocked"`, include both metrics, append proposal to **Pending evidence** (no version bump, no snapshot), exit.
+8. **Reflection-quality gate.** Simulate v(N+1) on trailing 14d:
+   1. Re-derive each `your_p` under proposed calibration + tag + source penalties.
+   2. Recompute `brier_skill_after`.
+   3. If `brier_skill_after < brier_skill_before - 0.005` AND not a risk-tightening edit → refuse. Emit `reflection edited:false reason:"regression_blocked"`, append to **Pending evidence**, no snapshot, exit.
 
-9. **Auto-revert.** Inspect last 3 `reflection` events:
-   - All 3 `brier_skill < last_good_version.brier_skill` (read `strategy/history/`) → next edit MUST be revert.
-   - Copy `last_good_version` snapshot to `current.md`, preserve failed-run as `strategy/history/<date>-v<failed_N>.md`, bump version, emit `reflection edited:true reason:"auto_revert" reverted_to:"<vN>"`. Skip the standard edit branch.
+9. **Auto-revert.** Inspect last 3 `reflection` events. All 3 with `brier_skill < last_good_version.brier_skill` → next edit MUST revert:
+   - Copy `last_good_version` snapshot to `current.md`, preserve failed-run as `strategy/history/<date>-v<failed_N>.md`, bump version.
+   - Emit `reflection edited:true reason:"auto_revert" reverted_to:"<vN>"`. Skip standard edit.
 
 10. **Exploration retries.** Walk hypothesis registry:
-    - `status:"demoted"` with `next_retry_date <= today` → `status:"probation"`, `sizing_mult:0.5`, clear date. Pending evidence: "probation collection, 5 forecasts".
-    - `status:"probation"` with ≥5 resolved since promotion → batch `brier_skill > 0` → `status:"watch" sizing_mult:1.0`; else re-demote with `next_retry_date = today + 14d`.
+    - `demoted, next_retry_date <= today` → `probation, sizing_mult:0.5`, clear date. Pending: "5 forecasts for promotion".
+    - `probation` with ≥5 resolved → batch `brier_skill > 0` → `watch, mult:1.0`; else re-demote `+14d`.
 
-11. **Decide edit.** Edit if: hit-rate/Brier worse than threshold; repeated mispricing pattern not captured; correlation surprise; research method consistently better; new evidence changes thesis status (even if no rule change). Don't edit otherwise. Emit `reflection edited:false` either way to mark today done.
+11. **Decide edit.** Edit if: hit-rate/Brier worse than threshold; repeated mispricing pattern; correlation surprise; research method consistently better; new evidence changes thesis status. Don't edit otherwise. Emit `reflection edited:false` to mark today done.
 
 12. **If editing:**
     - Read frontmatter `version: vN` → bump `v(N+1)`.
-    - **Snapshot:** copy to `strategy/history/YYYY-MM-DD-v<old_N>.md`. Name conflict → `-v<old_N>a`.
-    - Update **structured** learning state (not free-text):
-      - **Current decision rules** (calibration, sizing, filters, correlation, edge floor).
-      - **Calibration ledger** (bucket, count, Brier, hit rate, adjustment).
-      - **Hypothesis registry** (thesis/tag, status, evidence count, action).
-      - **Pending evidence**.
-      - **Caveats**.
-    - Write new `current.md` with `version: v(N+1)`. Incremental; append rationale to **Changelog**.
+    - Snapshot: copy to `strategy/history/YYYY-MM-DD-v<old_N>.md`. Conflict → `-v<old_N>a`.
+    - Update structured state: decision rules, calibration ledger, hypothesis registry, pending evidence, caveats.
+    - Write new `current.md` with `version: v(N+1)`. Append rationale to Changelog.
 
 13. **`reflection` event** via `journal`:
     ```json
-    {"event_type":"reflection","date":"<YYYY-MM-DD>","edited":true,"prior_version":"v<old_N>","new_version":"v<N+1>","snapshot":"strategy/history/<YYYY-MM-DD>-v<old_N>.md","reason":"normal|regression_blocked|auto_revert|risk_tighten","reverted_to":null,"metrics":{"resolved_forecasts":0,"brier_agent":null,"brier_market_p":null,"brier_skill_before":null,"brier_skill_after":null,"calibration_slope":null,"calibration_intercept":null,"auc":null,"kl_vs_market":null,"drift_skill":null,"rejected_drift":null,"unresolved_drift_count":0},"per_source":[],"per_feature_tag":[],"promoted":[],"demoted":[],"probation_started":[],"probation_resolved":[],"pending":["<lesson>"],"rationale":"<short>"}
+    {"event_type":"reflection","date":"<YYYY-MM-DD>","edited":true,"prior_version":"v<old>","new_version":"v<new>","snapshot":"strategy/history/<date>-v<old>.md","reason":"normal|regression_blocked|auto_revert|risk_tighten","reverted_to":null,"metrics":{...},"per_source":[],"per_feature_tag":[],"promoted":[],"demoted":[],"probation_started":[],"probation_resolved":[],"pending":[],"rationale":"<short>"}
     ```
 
-14. **Commit msg** (handled by `persist`): `feat(strategy): reflect -> v<N+1> (snapshot v<old_N>) [cycle <cid>]`.
+14. **Commit subject:** `feat(strategy): reflect -> v<N+1> [cycle <cid>]` (per `skills/commit`).
 
-15. **Guardrail recommendation.** If `guardrails.md` should change → `risk.surface_recommendation(text)` so next daily summary includes it. **Do not edit guardrails.**
+15. **Guardrail recommendation.** If `guardrails.md` should change → `risk.surface_recommendation(text)` so daily summary includes it. Never edit guardrails.
 
 ## Failure modes
 
-- No activity → write `reflection edited:false`.
-- No learning fields → score what's possible; add missing fields to pending evidence.
+- No activity → `reflection edited:false`.
+- No learning fields → score what's possible; add to pending evidence.
 - YAML version parse fail → treat as `v0`; write `v1` snapshot.
 - Snapshot write fail → do NOT overwrite `current.md`. Log + exit.
-- Gate refused → not an error; `edited:false reason:"regression_blocked"`. Re-try next day with more data.
-- Auto-revert path → revert IS a normal edit for snapshotting + version bump, but mark `reason:"auto_revert"` so future reflections see it.
+- Gate refused → `edited:false reason:"regression_blocked"`, retry next day.
+- Auto-revert → normal edit semantics with `reason:"auto_revert"`.

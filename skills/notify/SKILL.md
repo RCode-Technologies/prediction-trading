@@ -1,6 +1,6 @@
 ---
 name: notify
-description: Telegram Bot API alerts. Per-mode suppression. Never logs/echoes secrets.
+description: Telegram Bot API alerts via curl. Per-mode suppression. Never logs or echoes secrets.
 inputs: notification kind + payload
 outputs: HTTP POST to api.telegram.org, notification event
 ---
@@ -9,30 +9,27 @@ outputs: HTTP POST to api.telegram.org, notification event
 
 Only outbound human channel. Never block the cycle.
 
-## How Telegram is invoked (read before anything else)
+## Transport
 
-There is **no Telegram MCP server, no `mcp__telegram__*` tool, no plugin integration**, and there will never be one. Telegram is reached by plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>` using the `Bash` tool. The `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` env vars are injected by the runtime (ADR 0004) and are the entire integration surface.
+Plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>`. No MCP. `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` injected by runtime (ADR 0004).
 
-**Do not refuse a notify request on the grounds that "no Telegram integration is available."** If `[ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]` returns true in `Bash`, you have everything you need — run the `curl` in step 4a/4b. If either var is empty, follow the missing-creds rule (silent skip in paper, `preflight_failed` in mainnet), but never propose Slack/Drive/"showing contents here" as a substitute. Telegram is the contract; alternative channels are out of scope.
+## Suppression
 
-## Suppression rules
-
-- **Paper:** `daily_summary` + `circuit_breaker` only. Skip per-trade.
-- **Mainnet:** `trade_placed`, `daily_summary`, `weekly_recap`, `circuit_breaker`, `preflight_failed`, `persist_conflict`, `phase_missed`.
-
-Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
-- Paper → silently skip.
-- Mainnet → handled as `preflight_failed` upstream by `trade`.
+- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `strategy_evolution`, `circuit_breaker`, `null_cycle`, `liveness_gap`. Per-trade suppressed.
+- **Mainnet:** all of paper + `trade_placed`, `preflight_failed`, `persist_conflict`, `phase_missed`.
+- **Suppression-exempt (always send if creds present):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `persist_conflict`. These break silent-failure modes.
+- Missing creds in paper → silent skip. Missing creds in mainnet → handled by `trade` as `preflight_failed`.
 
 ## Steps
 
-1. Resolve which kinds to send based on mode + caller request.
-2. **`daily_summary` dedupe.** Grep trade-log for prior `notification kind:"daily_summary"` with `date:<today UTC>` → skip if present.
-3. **Compose payload** (markdown-safe; never include secrets, wallet addrs, raw env vars, token-bearing URLs).
-4. **Pick transport by size.** Telegram `sendMessage` hard-caps `text` at **4096 chars** — longer payloads return `400 Bad Request: message is too long`. Measure the composed payload with `printf '%s' "$payload" | wc -c`.
-   - **≤4096 chars** → `sendMessage` (step 4a).
-   - **>4096 chars or sending a file from the repo** (recap, README, scorecard, log excerpt) → `sendDocument` with the content as a file attachment (step 4b). Do **not** try to chunk and emit multiple `sendMessage` calls — out-of-order delivery and per-chunk markdown parsing both break readability.
-4a. **`sendMessage` (text ≤4096):**
+1. Resolve kinds to send (mode + caller).
+2. **Date-based dedupe** (once-per-UTC-date kinds: `daily_summary`, `weekly_recap`, `strategy_evolution`). Grep trade-log for prior `notification kind:"<this_kind>"` with `date:<today UTC>` → skip if present. (`discovery_summary` is per-phase and must NOT use this dedupe; `*_failed` suffixes are distinct kinds so retries aren't blocked.)
+3. **Compose payload.** Load only the template file matching the `kind` (see § Templates). Substitute placeholders; sanitize external content (`<market>`, `<reason>`, leads) for unbalanced `*` `_` `` ` ``. Never include secrets, wallet addrs, raw env vars, token-bearing URLs.
+4. **Pick transport by size.** Telegram `sendMessage` caps `text` at 4096 chars (`printf '%s' "$payload" | wc -c`).
+   - ≤4096 → `sendMessage` (4a).
+   - >4096 or sending a repo file → `sendDocument` (4b). Don't chunk-send multiple messages.
+
+4a. **`sendMessage`** (text ≤4096):
    ```bash
    curl -sS -X POST \
      "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
@@ -40,37 +37,54 @@ Missing `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`:
      --data-urlencode "text=<payload>" \
      --data-urlencode "parse_mode=Markdown"
    ```
-4b. **`sendDocument` (large text or file):** if you're sending a file that already exists on disk, attach it by path; otherwise write the payload to a temp file first. Caption is itself capped at 1024 chars.
+
+4b. **`sendDocument`** (large text or file). Existing file: attach by path. Else write payload to temp file first. Caption ≤1024 chars:
    ```bash
    curl -sS -X POST \
      "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
      -F "chat_id=${TELEGRAM_CHAT_ID}" \
-     -F "document=@<path/to/file>" \
+     -F "document=@<path>" \
      -F "caption=<≤1024-char summary>"
    ```
-   Never echo `$TELEGRAM_BOT_TOKEN`. Never log a URL with the token. Capture HTTP status and `ok` field from the response body to detect silent failures — a 200 with `ok:false` (e.g. `error_code:400, description:"message is too long"`) is still a failure and must be logged as `notification kind:"<original>_failed" reason:"<description>"`.
+   Never echo the token. Never log token-bearing URLs. Check `ok` field — 200 with `ok:false` is still failure; log as `notification kind:"<original>_failed"`.
+
 5. **`notification` event** via `journal`:
    ```json
    {"event_type":"notification","kind":"<kind>","transport":"sendMessage|sendDocument","date":"<YYYY-MM-DD>"}
    ```
 
-## Payload shapes
+## Templates (load only the one needed)
 
-- `daily_summary`: `[<mode>] Daily summary <YYYY-MM-DD>` + NAV (Δ24h%), cycles N/4, forecasts/paper_fills/mainnet_fills counts, open positions + cash, top movers.
-- `weekly_recap`: `[<mode>] Weekly recap <YYYY-Www>` + NAV (Δ7d%), total fills, hit rate, Brier, best/worst call, strategy version.
-- `trade_placed` (mainnet): market, outcome, side BUY, price, shares, notional, order_id.
-- `circuit_breaker`: `[<mode>] CIRCUIT BREAKER — trading halted` + reason, triggered_at, 24h P&L%, "Resume requires manual edit of state/halts.json".
-- `preflight_failed`: which check + brief reason (no secrets).
-- `persist_conflict`: branch + last commit attempted.
-- `phase_missed`: which phase + last successful ts.
+| Kind                | Variant / when                | Template                                                                                |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------- |
+| `routine_summary`   | no-action one-liner           | [templates/routine_summary.md](templates/routine_summary.md)                            |
+| `discovery_summary` | 0 candidates                  | [templates/discovery_summary_empty.md](templates/discovery_summary_empty.md)            |
+| `discovery_summary` | 1–3 candidates                | [templates/discovery_summary_candidates.md](templates/discovery_summary_candidates.md)  |
+| `daily_summary`     | no positions + no fills       | [templates/daily_summary_empty.md](templates/daily_summary_empty.md)                    |
+| `daily_summary`     | positions open or fills today | [templates/daily_summary_full.md](templates/daily_summary_full.md)                      |
+| `weekly_recap`      | Sundays                       | [templates/weekly_recap.md](templates/weekly_recap.md)                                  |
+| `strategy_evolution`| reflect edited or guard held  | [templates/strategy_evolution.md](templates/strategy_evolution.md)                      |
+| `trade_placed`      | mainnet only, per fill        | [templates/trade_placed.md](templates/trade_placed.md)                                  |
+| `circuit_breaker`   | any breaker trip              | [templates/circuit_breaker.md](templates/circuit_breaker.md)                            |
+| `preflight_failed`  | trade preflight gate          | [templates/preflight_failed.md](templates/preflight_failed.md)                          |
+| `persist_conflict`  | push rejected after retry     | [templates/persist_conflict.md](templates/persist_conflict.md)                          |
+| `phase_missed`      | per missed phase              | [templates/phase_missed.md](templates/phase_missed.md)                                  |
+| `null_cycle`        | routine missed its floor      | [templates/null_cycle.md](templates/null_cycle.md)                                      |
+| `liveness_gap`      | scheduler skipped cycles      | [templates/liveness_gap.md](templates/liveness_gap.md)                                  |
+
+### Markdown safety (every template)
+
+- Balance `*`, `_`, `` ` ``. Unbalanced → `400: can't parse entities`.
+- No nested formatting.
+- Wrap identifiers / paths / mode tag in backticks.
+- External content untrusted — strip or backtick-wrap before substitution.
 
 ## Failure modes
 
-- Telegram error → retry once with backoff → log `notification` `kind:"<original>_failed"` and continue.
-- `sendMessage` returns `400 message is too long` → retry **once** as `sendDocument` (step 4b) with the same payload written to a temp file; this is the canonical recovery path, not a special case.
-- Missing creds (paper) → silent skip.
-- Missing creds (mainnet) → caller (`trade`) handles as preflight upstream.
+- Telegram error → retry once with backoff → log `notification kind:"<original>_failed"` and continue.
+- `400 message is too long` → retry once as `sendDocument` (4b) with payload in temp file.
+- Missing creds (paper) → silent skip. Missing creds (mainnet) → caller handles as preflight.
 
 ## Operator-invoked send (out-of-cycle)
 
-When a human asks the agent to deliver a file from the repo to Telegram (e.g. "send README.md", "send today's recap") because a routine didn't reach them: this is **not** suppressed by the per-mode rules in `Suppression rules` — those govern automated cycle traffic. Resolve the file path, send via step 4b (`sendDocument`) regardless of size, and append a `notification kind:"operator_send" path:"<repo-relative>" transport:"sendDocument"` event. Env vars come from the runtime environment per ADR 0004; the agent does **not** read `.env` files itself.
+Human asks to deliver a repo file to Telegram (e.g. "send README.md"). Not suppressed by mode rules. Resolve path, send via step 4b regardless of size, append `notification kind:"operator_send" path:"<repo-relative>" transport:"sendDocument"`.

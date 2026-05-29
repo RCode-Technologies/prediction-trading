@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Git pre-push guard — this repo is strictly main-only.
+#
+# Rejects pushing ANY ref other than refs/heads/main, regardless of how the
+# branch was created (manual git, agent, or Claude Code worktree/background).
+# This is the true choke point: a branch that never reaches origin cannot
+# break the routines, which all assume main.
+#
+# Allowed:  update refs/heads/main; delete a non-main branch (cleanup).
+# Blocked:  push/create any non-main branch; delete main.
+#
+# A human can bypass intentionally with:  git push --no-verify ...
+# (hooks gate routine/agent pushes; the human opts out deliberately.)
+#
+# Requires this repo to use these hooks:  git config core.hooksPath .githooks
+# (wired into the cloud setup script and documented in README.md).
+
+zero="0000000000000000000000000000000000000000"
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "${remote_ref:-}" ] && continue
+  case "$remote_ref" in
+    refs/heads/main)
+      if [ "$local_sha" = "$zero" ]; then
+        echo "pre-push BLOCKED: refusing to delete 'main'." >&2
+        status=1
+      fi
+      ;;
+    *)
+      if [ "$local_sha" = "$zero" ]; then
+        : # deleting a non-main branch is cleanup — allow
+      else
+        echo "pre-push BLOCKED: this repo is main-only; refusing to push '$remote_ref'." >&2
+        echo "  Do all work on main. A human may override with: git push --no-verify" >&2
+        status=1
+      fi
+      ;;
+  esac
+done
+
+exit $status

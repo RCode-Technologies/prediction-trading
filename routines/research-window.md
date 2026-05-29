@@ -9,34 +9,56 @@ expected_frequency: 1/day
 
 # Research Window — 12:00 UTC / 07:00 ET
 
-US wake-up. Pull overnight signals (EU close, Asia resolutions, weekend polling). Build today's watchlist. **Heaviest research routine** — most of the day's source budget spent here.
+Heaviest research routine. **Floor: ≥1 `research_note`, ≥1 `candidate_rank`, ≥3 `forecast`.**
+
+## v2 flow: universe-first
+
+Universe → identify targets → targeted research → attach signals → watchlist + forecasts (incl. mandatory probes). Avoids v1's empty intersection.
 
 ## Steps
 
-1. `boot`
-2. `circuit-breaker.evaluate()` — cp1. Halted → skip to 6 (daily summary if due, persist, exit).
-3. `research` — angle: "what shifted overnight (EU close / Asia resolutions / weekend polling / late sports)?". Budget ≤3 sources (external keys → native WebSearch/WebFetch → Polymarket only).
-4. `markets` — build/refresh watchlist with fresh prices. May consume 1 Gamma source from the shared 3-source bucket.
-5. `journal` — `research_note`, `candidate_rank`, `phase_completed`.
-6. `persist`.
+1. **Set reasoning effort to MAX** — this drives downstream trade-window decisions.
+2. `boot`
+3. `circuit-breaker.evaluate()` — cp1. Halted → jump to 12.
+4. **Universe refresh.** `state/universe.jsonl` missing or `cached_at < now - 24h` → run `markets.universe()` (1 Gamma source). Else load cache.
+5. **Identify targets.** Top 10-15 universe markets by `category` × liquidity. Derive a short angle per target. Budget reserved: 2 (research) + 1 (universe if refreshed).
+6. `research` — targeted lookups by market question. ≤2 sources (Brave/Tavily/Serper → native WebSearch/WebFetch → Polymarket-only). Each thesis card MUST set `market_ids` for `attach_signals` join.
+7. `markets` — `attach_signals` + `rank`. Slate mix of exploit-eligible + exploration-fallback candidates.
+8. **Build forecast slate (≥3 mandatory)** — same algorithm as `trade-window` step 6.
+9. `sizing` per slate entry. Exploit may fill (post-obs); explore is forecast-only.
+10. `trade` for exploit decisions with `shares > 0`. Mainnet rare here (trade-window owns it).
+11. **Self-audit.** Count `forecast` (`<3` → `null_cycle reason:"forecast_floor_missed"`), `research_note` (`<1` → null_cycle), `candidate_rank` (`<1` → null_cycle). Notify on any.
+12. `journal.phase_completed forecasts:<N>, research_notes:<N>, candidate_rank:<N>, slate_composition`.
+13. `notify discovery_summary`. `null_cycle` if emitted (suppression-exempt).
+14. `persist`.
+
+## Source budget
+
+3 max/cycle. Typical: 1 (universe) + 2 (research) = 3.
 
 ## Output artifacts
 
-- `research/YYYY-MM-DD/<slug>.md`
-- `research/YYYY-MM-DD/watchlist.md` (top 5 with fresh marks)
+- `state/universe.jsonl` (refreshed daily)
+- `research/YYYY-MM-DD/<slug>.md` per thesis
+- `research/YYYY-MM-DD/watchlist.md` (top 5 + slate composition)
 
 ## Trade behavior
 
-- Paper observation: forecast-only.
-- Paper post-observation: sizing + paper fills if candidate passes edge floor.
-- Mainnet: not prioritized here (US news drops after 09:30 ET = `trade-window`). Execute only if strong, time-sensitive edge closes before 18:00 UTC.
+- Paper obs: forecast-only on both paths (sizing's observation short-circuit).
+- Paper post-obs: exploit may fill; explore stays forecast-only.
+- Mainnet: not prioritized; trade-window owns it.
 
 ## Failure modes
 
-- All preflights fail → `preflight_failed`, exit.
-- All providers error → continue on Polymarket only.
-- No candidates pass min-edge → empty watchlist, `phase_completed` still emitted.
+- Gamma down AND universe cache stale → `null_cycle reason:"no_market_data"`.
+- All research providers error → Polymarket-only; explore probes still emit (don't need news).
+- 0 exploit candidates → fine. Explore fills.
+- < 3 forecasts → `null_cycle reason:"forecast_floor_missed"` (cycle still persists).
+
+## Notify
+
+`discovery_summary` paper + mainnet (slate composition, top thesis). For explore-only cycles: name the 3 probed markets and their ε. `null_cycle` suppression-exempt.
 
 ## Commit
 
-`feat(research): window <YYYY-MM-DD> [cycle <cid>]`
+Per `skills/commit` § Routine-mapped subjects. Body: slate composition, sources used, notifications. One commit.

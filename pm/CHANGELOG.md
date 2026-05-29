@@ -3,7 +3,68 @@
 All notable changes to this project are tracked here. Newest entries on top.
 Versioning is loose semver-ish: `v0.x` until first mainnet trade, then `v1.0`.
 
-## [Unreleased]
+## [Unreleased] — the v3 epoch
+
+**v3** is the current epoch — *Edge, Honest Accounting, Fast Learning*, now also **Self-Direction**
+and **Repo Hygiene**. Self-direction (`envision`/`enact`) and `groom` shipped 2026-05-29 (paper-mode)
+as the first implemented slices of v3; the edge/accounting/learning package below is still design-only.
+There is no separate `v0.4` — those changes are folded into v3.
+
+### Implemented — Self-direction (envision / enact), 2026-05-29
+
+The supervisor no longer has to ask for a version bump. **`skills/envision`** (daily, agent-owned)
+reflects on the whole system and authors capability proposals into `proposals/`; on Sundays
+**`skills/enact`** (≤1/week, protected core) self-implements one low-risk, reversible, paper-only,
+denylist-clean proposal as a single revertible commit, then arms auto-rollback. Bounded by a
+human-owned constitution (`config/autonomy.md`) the agent cannot amend, enforced by three gates keyed
+to commit identity: `boot` integrity audit, `persist` write gate, `circuit-breaker`
+`protected_core_violation`. New journal events `vision` / `proposal` / `enactment` (`enactment` notify
+is suppression-exempt). Nothing touching guardrails / capital / breaker / mainnet may ever self-enact;
+the human vetoes by `git revert` / `LEDGER.md` status (standing ≥7-day window). See PRD
+§"Folded into v3", [plan](plans/v3-edge-and-learning.md) Phase 7,
+[ADR 0023](adrs/0023-bounded-agent-self-direction.md).
+
+### Implemented — Repo hygiene (groom), 2026-05-29
+
+**`skills/groom`** (weekly, Sundays) keeps the brain lean and AI-navigable: the **sole** rotator of
+`state/trade-log.jsonl` + `state/forecasts.resolved.jsonl` into `state/archive/` (30d / 90d; the cutoff
+never strands a line tied to an open forecast — atomic, no-drop, idempotent), plus a token-budget +
+referential-integrity lint of the auto-loaded set. Report-only on core cognition files; findings ride
+the weekly recap. **Weekly by design** — the per-cycle invocation is the metered cost. Adds the `groom`
+journal event + `state/archive/` to the repo layout. [plan](plans/v3-edge-and-learning.md) Phase 8,
+[ADR 0024](adrs/0024-weekly-groom.md).
+
+### Proposed (design only — not implemented) — Edge, Honest Accounting, Fast Learning
+
+- **v3 design package — Edge, Honest Accounting, and Fast Learning.** Drafted
+  2026-05-29 after the US x Iran trade (`2354045`) showed a ~-34% position
+  loss driven by process defects (no defensible edge, bet placed without
+  parsing resolution criteria, midpoint-priced paper fills, no disconfirmation
+  exit) on top of a learning loop stuck at `resolved_n=0` and a capital model
+  that had been rewritten by 185× position scaling.
+  - [PRD](prds/v3-edge-and-learning.md) — what & why, goals mapped to
+    faster/better/precise/profitable, an opinionated risk philosophy
+    (conviction-tiered sizing ladder + equity governors), acceptance criteria,
+    ownership map, and the resolved supervisor decisions.
+  - [Plan](plans/v3-edge-and-learning.md) — seven phases (capital integrity +
+    Iran exit → cost-honest accounting → edge gate + forecast/trade split →
+    CLV fast-learning on repurposed pulse cycles → historical bootstrap →
+    risk doctrine → cost-model rebalance).
+  - **Scheduled-invocation budget baked in:** the metered cost is the *cycle*,
+    not the line of context. Stays at ~10 invocations/day (≤15 ceiling) by
+    repurposing the 6 dead heartbeats into useful CLV/exit "pulse" cycles —
+    no new routines.
+  - **Supervisor decisions folded in (2026-05-29):** exit the Iran position now
+    and take the loss; approve the offline backtest; replace the per-cycle
+    forecast floor with a daily routine-aware target; replace the flat 5% cap +
+    24h breaker with the tiered ladder + governors; keep market selection
+    category-neutral with `edge_source` tagging.
+  - Proposes ADRs 0017–0022 (listed in the PRD; to be spun out on approval):
+    cost-honest fills (amends 0003), edge gate, CLV + bootstrap, risk doctrine
+    (tiered sizing + governors + exits, amends "no auto-SELL"), cost-model
+    reprioritization (amends `AGENTS.md`), scheduled-invocation budget.
+  - **Status:** awaiting supervisor review. No runtime files (`skills/`,
+    `routines/`, `strategy/`, `state/`, `config/`, `AGENTS.md`) changed yet.
 
 ## [v0.3.0] — 2026-05-24
 
