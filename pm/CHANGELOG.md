@@ -34,7 +34,7 @@ the weekly recap. **Weekly by design** — the per-cycle invocation is the meter
 journal event + `state/archive/` to the repo layout. [plan](plans/v3-edge-and-learning.md) Phase 8,
 [ADR 0024](adrs/0024-weekly-groom.md).
 
-### Proposed (design only — not implemented) — Edge, Honest Accounting, Fast Learning
+### Implemented (2026-05-29, paper) — Edge, Honest Accounting, Fast Learning
 
 - **v3 design package — Edge, Honest Accounting, and Fast Learning.** Drafted
   2026-05-29 after the US x Iran trade (`2354045`) showed a ~-34% position
@@ -63,8 +63,12 @@ journal event + `state/archive/` to the repo layout. [plan](plans/v3-edge-and-le
     cost-honest fills (amends 0003), edge gate, CLV + bootstrap, risk doctrine
     (tiered sizing + governors + exits, amends "no auto-SELL"), cost-model
     reprioritization (amends `AGENTS.md`), scheduled-invocation budget.
-  - **Status:** awaiting supervisor review. No runtime files (`skills/`,
-    `routines/`, `strategy/`, `state/`, `config/`, `AGENTS.md`) changed yet.
+  - **Status:** **implemented in paper** across 7 commits (strategy v2→v3 cutover,
+    cost-honest fills, provenance edge gate + forecast/trade split, CLV pipeline,
+    risk doctrine + guardrails ladder/governors, cost-model rebalance, offline
+    backtest). Capital integrity + the Iran exit landed too — the position
+    auto-exited via the new disconfirmation stop the moment Phase 5 went live
+    (sold at −51.7% from entry, `risk_reduction`). Mainnet stays off.
 
 ## [v0.3.0] — 2026-05-24
 

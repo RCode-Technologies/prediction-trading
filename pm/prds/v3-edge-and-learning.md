@@ -1,8 +1,12 @@
 # PRD — v3: Edge, Honest Accounting, Fast Learning — + Self-Direction & Repo Hygiene
 
-- **Status:** **Partially implemented.** Self-direction (`envision`/`enact`) + repo hygiene (`groom`)
-  shipped 2026-05-29 (paper-mode) — see §"Folded into v3". The Edge / Honest Accounting / Fast Learning
-  package below remains **proposed** (awaiting supervisor review — not implemented).
+- **Status:** **Implemented 2026-05-29 (paper-mode).** All v3 phases landed: cost-honest accounting
+  (P1), edge gate + forecast/trade split (P2), CLV fast-learning (P3), historical bootstrap (P4), risk
+  doctrine (P5), cost-model rebalance (P6), capital integrity (P0) — alongside self-direction
+  (`envision`/`enact`) + repo hygiene (`groom`). Validated in paper; **mainnet stays off** behind the
+  separate human-attested promotion. Notable: the Iran position (`2354045`) auto-exited the moment P5
+  went live — the new disconfirmation stop sold it at −51.7% from entry via the `risk_reduction` path,
+  the exact failure v2 could see but not act on.
 - **Date:** 2026-05-29
 - **Owner:** Theo (supervisor; owns `config/guardrails.md` + `config/autonomy.md` + mode flips + the scheduled-invocation budget). Strategy + proposals content is agent-owned.
 - **Drafted by:** Claude (Opus) design-review session, 2026-05-29.

@@ -6,9 +6,10 @@
 
 ## How to read this plan
 
-Seven phases, ordered so each is independently shippable and verifiable. **Phases 0–1 are correctness/safety and land before any new bet.** Phases 2–3 are the core edge + fast-learning work. Phases 4–6 deepen learning and clean up. Each phase lists **owner**, **files**, **change**, **verify**. **Phases 7–8 (self-direction, repo
-hygiene) were implemented 2026-05-29** — folded in from the former standalone "v0.4"; phases 0–6 remain
-proposed.
+Seven phases, ordered so each is independently shippable and verifiable. **Phases 0–1 are correctness/safety and land before any new bet.** Phases 2–3 are the core edge + fast-learning work. Phases 4–6 deepen learning and clean up. Each phase lists **owner**, **files**, **change**, **verify**. **All phases (0–8) were implemented
+2026-05-29 (paper-mode)** — phases 0–6 (edge/accounting/learning/risk/cost-model) plus 7–8
+(self-direction, repo hygiene). Mainnet stays off. The Iran exit (Phase 0) was executed by the
+system's own new disconfirmation stop (Phase 5), not by hand.
 
 Strategy v3 is cut over at the start of Phase 2 (snapshot v2 → `strategy/history/2026-05-29-v2.md`, bump `current.md` to v3). Everything is paper-mode; mainnet stays off. Edits to `config/guardrails.md` and the cron schedule are **supervisor-owned** and called out explicitly — the builder prepares the diff, the human accepts.
 
