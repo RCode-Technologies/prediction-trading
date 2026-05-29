@@ -8,6 +8,8 @@ expected_frequency: 6/day
 
 # Heartbeat — every 4h
 
+> **This is the pulse cycle** (Phase 6 framing): CLV snapshot + cheap mark + disconfirmation-stop check + liveness, all on a session already paid for. Adds zero forecasts, zero invocations. File stays named `heartbeat` (the cron points here); steps below are unchanged.
+
 Dead-man's switch **+ CLV pulse + exit/governor check**. Cheap and idempotent. Fires when nothing else is happening; closes the silent-failure gap that the 4/day trade routines can't catch alone (if those stop firing, nothing alerts). v3 turns the bare liveness ping into a useful **pulse** cycle: it now does a cheap CLV snapshot + mark + a disconfirmation-stop scan while it's already paying for the session. Adds **zero** new forecasts and **zero** new invocations. (The conceptual "pulse" rename is Phase 6's doc job — this file MUST keep the name `heartbeat`; the cron points at it.)
 
 ## Steps

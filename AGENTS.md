@@ -4,9 +4,11 @@ Stateless. **This repo is the brain.** If knowledge isn't here, it doesn't exist
 
 **Push = success.** Every cycle ends `HEAD == origin/main`. **No forecasts emitted = `null_cycle` failure** (still pushed, flagged).
 
-## Token economy (read first)
+## Cost model (read first)
 
-Every line in this file + the boot files is paid every cycle. Skills load on demand.
+Scarce resources, in priority order: **capital > correctness > calibration data > human attention > paid invocations > LLM context tokens.** The metered unit is the **scheduled invocation** — each cron fire is one paid agent session. Context tokens are the *cheapest* resource; never trade a correct capital decision to save them.
+
+Progressive disclosure still applies — load what the current step needs, no more — but the goal is to load **everything a capital decision needs** (e.g. the resolution `description`), and recover cost by cutting low-value *cycles*, not by under-contextualizing a bet.
 
 - Auto-loaded: `AGENTS.md`, `config/mode.json`, `state/{halts,lock,portfolio,cycle-index,scorecard,calibration}.json`, `state/trade-log.jsonl` tail, `strategy/current.md`.
 - On demand: `skills/<name>/SKILL.md`, `config/guardrails.md`, `research/`, `recaps/`, `state/{universe,forecasts.*}.jsonl`.
@@ -20,27 +22,29 @@ Enter through one routine. Load skills only when a step says to. Don't improvise
 
 ## Schedule (UTC; manual cron in Claude Code UI)
 
-| cron     | routine          | role                                                          |
-| -------- | ---------------- | ------------------------------------------------------------- |
-| 04:00    | overnight-watch  | NAV + breaker; opportunistic; `recalibrate.sweep`             |
-| 12:00    | research-window  | universe refresh, targeted research, ≥3 forecasts             |
-| 18:00    | trade-window     | primary decisions + execution; ≥3 forecasts                   |
-| 22:00    | daily-close      | recap + reflect (Sun: +weekly +groom); `recalibrate.sweep`    |
-| 0 */4    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped     |
+| cron     | routine          | role                                                                         |
+| -------- | ---------------- | ---------------------------------------------------------------------------- |
+| 04:00    | overnight-watch  | NAV + breaker; opportunistic; `recalibrate.sweep`                            |
+| 12:00    | research-window  | universe refresh, targeted research, broad forecast batch (~4–6)             |
+| 18:00    | trade-window     | primary decisions + execution; broad forecast batch (~4–6)                   |
+| 22:00    | daily-close      | recap + reflect + envision (Sun: +weekly +groom +enact); `recalibrate.sweep` |
+| 0 */4    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped                    |
 
 Circuit breaker (`skills/circuit-breaker.evaluate()`) at checkpoints inside every routine; `halt(reason)` for non-loss. Missed-phase: next routine greps trade-log for prior phase's `phase_completed`. Liveness gap: `boot` compares `now` vs `cycle-index.last_completed_at`; > 9h emits `liveness_gap` + notify.
 
 ## Action commitment (HARD floors; miss → `null_cycle`, still push)
 
-| phase            | required events                                          |
-| ---------------- | -------------------------------------------------------- |
-| research_window  | ≥1 `research_note`, ≥1 `candidate_rank`, ≥3 `forecast`   |
-| trade_window     | ≥3 `forecast`                                            |
-| daily_close      | ≥1 `recap`, ≥1 `reflection`                              |
-| overnight_watch  | ≥1 `nav_snapshot`                                        |
-| heartbeat        | ≥1 `phase_completed`                                     |
+Forecast target is **daily + routine-aware** (canonical: `strategy/current.md` § Decision rules → Forecast target). The two content cycles each emit a broad **forecast-only** batch (~4–6 each, ~8–12/day combined); only § Edge-gate passers (expected 0–2/day) risk capital. A content cycle that emits **zero** forecasts → `null_cycle` — there is no rigid per-cycle count.
 
-`trade-window` and `research-window` fill empty forecast slots with deterministic ε-probes (`learning_intent:"explore"`, `your_p = market_p ± 0.05` or 0.0 by rank). Math in `strategy/current.md` § Exploration probe policy.
+| phase            | required events                                                     |
+| ---------------- | ------------------------------------------------------------------- |
+| research_window  | ≥1 `research_note`, ≥1 `candidate_rank`, ≥1 `forecast` (batch ~4–6) |
+| trade_window     | ≥1 `forecast` (batch ~4–6; gate-passers become bets)                |
+| daily_close      | ≥1 `recap`, ≥1 `reflection`                                         |
+| overnight_watch  | ≥1 `nav_snapshot`                                                   |
+| heartbeat        | ≥1 `phase_completed`                                                |
+
+`trade-window` + `research-window` emit honest `your_p` per candidate (no synthetic ε offset), each tagged with `edge_source`. Pulse / other cycles emit **no** new forecasts. Math in `strategy/current.md` § Forecast batch policy. (The v2 rigid ≥3-`forecast` ε-probe floor is retired.)
 
 ## Guardrails (canonical: `config/guardrails.md`)
 

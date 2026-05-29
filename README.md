@@ -28,15 +28,19 @@ pm/                  humans only
 
 ## Schedule (UTC)
 
-| UTC   | ET           | Routine                                         | Purpose                                                |
-| ----- | ------------ | ----------------------------------------------- | ------------------------------------------------------ |
-| 04:00 | 23:00 (prev) | [overnight-watch](routines/overnight-watch.md)  | NAV + breaker; opportunistic only                      |
-| 12:00 | 07:00        | [research-window](routines/research-window.md)  | Heaviest research; ≥3 forecasts                        |
-| 18:00 | 13:00        | [trade-window](routines/trade-window.md)        | Decisions + execution; ≥3 forecasts                    |
-| 22:00 | 17:00        | [daily-close](routines/daily-close.md)          | Recap + reflect (Sun: +weekly)                         |
-| 0 */2 | every 2h     | [heartbeat](routines/heartbeat.md)              | Liveness probe; emits `liveness_gap` if scheduler skipped |
+| UTC   | ET           | Routine                                        | Purpose                                                 |
+| ----- | ------------ | ---------------------------------------------- | ------------------------------------------------------- |
+| 04:00 | 23:00 (prev) | [overnight-watch](routines/overnight-watch.md) | NAV + breaker; opportunistic only                       |
+| 12:00 | 07:00        | [research-window](routines/research-window.md) | Heaviest research; broad forecast batch                 |
+| 18:00 | 13:00        | [trade-window](routines/trade-window.md)       | Decisions + execution; broad forecast batch             |
+| 22:00 | 17:00        | [daily-close](routines/daily-close.md)         | Recap + reflect + envision (Sun: +weekly +groom +enact) |
+| 0 */4 | every 4h     | [heartbeat](routines/heartbeat.md)             | Pulse: CLV snapshot + mark + exit check + liveness      |
 
 Circuit breaker ([skills/circuit-breaker](skills/circuit-breaker/SKILL.md)) at checkpoints inside every routine.
+
+**Invocation budget.** The metered cost is the *scheduled invocation* (one paid agent session per cron fire), not context lines. The 4 trade routines + heartbeat run **~10/day** (heartbeat every 4h = 6); the hard ceiling is **≤15/day**, with the 5-cycle slack reserved for data-justified additions only. The 6 heartbeats are not bare liveness pings — they are the **pulse**: a cheap CLV snapshot + position mark + disconfirmation-stop check while the session is already paid for (zero added invocations, zero new forecasts).
+
+**Scheduler-reliability risk.** Liveness depends on a *single* cloud scheduler firing these crons plus the in-cycle `boot` gap-check (>9h since last completed cycle → `liveness_gap` + notify). There is **no external watchdog** — boot gap-detection only fires when a cycle actually runs, so a fully dark scheduler is silent until the next successful cycle. This is a known operational item for the supervisor.
 
 Change crons by editing the routine's frontmatter **and** the matching cron timer in the Claude Code UI.
 
