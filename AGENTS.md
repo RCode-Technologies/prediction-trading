@@ -25,7 +25,7 @@ Enter through one routine. Load skills only when a step says to. Don't improvise
 | 04:00    | overnight-watch  | NAV + breaker; opportunistic; `recalibrate.sweep`             |
 | 12:00    | research-window  | universe refresh, targeted research, ≥3 forecasts             |
 | 18:00    | trade-window     | primary decisions + execution; ≥3 forecasts                   |
-| 22:00    | daily-close      | recap + reflect (Sun: +weekly); `recalibrate.sweep`           |
+| 22:00    | daily-close      | recap + reflect (Sun: +weekly +groom); `recalibrate.sweep`    |
 | 0 */4    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped     |
 
 Circuit breaker (`skills/circuit-breaker.evaluate()`) at checkpoints inside every routine; `halt(reason)` for non-loss. Missed-phase: next routine greps trade-log for prior phase's `phase_completed`. Liveness gap: `boot` compares `now` vs `cycle-index.last_completed_at`; > 9h emits `liveness_gap` + notify.
@@ -98,6 +98,7 @@ Telegram, Polymarket CLOB, research APIs, RPC: all via `Bash` (curl, polymarket 
 config/{guardrails.md, mode.json}
 state/{portfolio,halts,lock,cycle-index,scorecard,calibration}.json + trade-log.jsonl
 state/{universe,forecasts.open,forecasts.resolved}.jsonl
+state/archive/*.jsonl  (groom-rotated logs, off the hot path)
 routines/*.md
 skills/<name>/SKILL.md  (+ skills/polymarket/ submodule)
 strategy/{current.md, history/}

@@ -7,7 +7,9 @@ outputs: appended JSONL line, optional markdown file, {event_id, line_number}
 
 # Journal
 
-Only skill that writes `state/trade-log.jsonl`. Append-only.
+Only skill that *appends* to `state/trade-log.jsonl`. Append-only here. The sole exception is
+`skills/groom`, which may *rotate* (rewrite) the file weekly — atomic, no-drop, archived to
+`state/archive/`. No other skill rewrites it.
 
 ## Envelope (auto-filled if absent)
 
@@ -27,7 +29,7 @@ Never bury attribution in markdown — reflection reads JSONL.
 
 ## Allowed `event_type`
 
-`cycle_start`, `stale_lock_recovered`, `research_note`, `candidate_rank`, `forecast`, `decision`, `decision_cleared`, `paper_fill`, `mainnet_order_submitted`, `mainnet_fill`, `nav_snapshot`, `halt`, `reflection`, `notification`, `preflight_failed`, `persist_conflict`, `cycle_end`, `recap`, `phase_completed`, `phase_missed`, `null_cycle` (v2), `liveness_gap` (v2), `recalibration` (v2).
+`cycle_start`, `stale_lock_recovered`, `research_note`, `candidate_rank`, `forecast`, `decision`, `decision_cleared`, `paper_fill`, `mainnet_order_submitted`, `mainnet_fill`, `nav_snapshot`, `halt`, `reflection`, `notification`, `preflight_failed`, `persist_conflict`, `cycle_end`, `recap`, `phase_completed`, `phase_missed`, `null_cycle` (v2), `liveness_gap` (v2), `recalibration` (v2), `groom` (v3).
 
 ## Steps
 

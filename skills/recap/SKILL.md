@@ -55,7 +55,7 @@ Invoked by `daily-close`. Recap embeds the scorecard `reflect` will consume.
 1. Caller passes `is_weekly=true` when `date('+%u')==7`.
 2. Dedupe with `kind:"weekly" iso_week:<YYYY-Www>`.
 3. Aggregate last 7d: total fills + fees; hit rate; Brier; NAV trajectory; best/worst call; strategy versions + reflection edits; halts; calibration by bucket + market class; hypotheses promoted/demoted/collecting; **7-day smartness delta** (`brier_skill` Δ, slope/intercept change, AUC change, penalties added/lifted, exploration retries, auto-reverts, regression-blocked edits). One-line verdict: sign of `brier_skill` Δ + slope trend toward 1.0.
-4. **Write `recaps/YYYY-Www.md`** frontmatter `kind: weekly`, `iso_week: YYYY-Www`. Sections: Performance, Trade quality, Calibration, Strategy evolution, Risk events, Recommendations for human review.
+4. **Write `recaps/YYYY-Www.md`** frontmatter `kind: weekly`, `iso_week: YYYY-Www`. Sections: Performance, Trade quality, Calibration, Strategy evolution, Risk events, Recommendations for human review. Groom `findings[]` (if `daily-close` passed any) go under *Recommendations for human review*.
 5. `recap` event `kind:"weekly"`.
 6. Hand off → `notify weekly_recap`.
 
