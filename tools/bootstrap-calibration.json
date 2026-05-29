@@ -1,0 +1,233 @@
+{
+  "status": "ok",
+  "source": "historical_bootstrap",
+  "generated_at": "2026-05-29T13:22:22.714361+00:00",
+  "methodology": {
+    "universe": "Polymarket Gamma /markets?closed=true (resolved binary markets)",
+    "forecast_price_source": "clob_pre_close",
+    "lead_hours_before_close": 24.0,
+    "outcome": "outcome-0 YES leg; realized 0/1 from settlement prices",
+    "quality_filter": "clean 0/1 settlement, volume + duration thresholds",
+    "note_on_last_trade": "Gamma lastTradePrice for closed markets is CONVERGED (~0/1) and must NOT be used as the seeded prior; default source is the CLOB pre-close price."
+  },
+  "n_markets_scored": 538,
+  "n_markets_dropped_no_forecast_price": 22,
+  "market_baseline_brier": 0.12127,
+  "in_out_of_sample": {
+    "split_date": "2026-05-28T23:41:30+00:00",
+    "in_sample_n": 268,
+    "out_of_sample_n": 270,
+    "in_sample_brier": 0.14905,
+    "out_of_sample_brier": 0.09369
+  },
+  "calibration_rows": [
+    {
+      "price_bin": "0.0-0.1",
+      "n": 236,
+      "mean_forecast_p": 0.0183,
+      "realized_freq": 0.0169,
+      "brier_contrib": 0.01618,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.1-0.2",
+      "n": 31,
+      "mean_forecast_p": 0.1479,
+      "realized_freq": 0.129,
+      "brier_contrib": 0.11399,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.2-0.3",
+      "n": 46,
+      "mean_forecast_p": 0.2501,
+      "realized_freq": 0.2391,
+      "brier_contrib": 0.18089,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.3-0.4",
+      "n": 39,
+      "mean_forecast_p": 0.3386,
+      "realized_freq": 0.5128,
+      "brier_contrib": 0.27042,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.4-0.5",
+      "n": 39,
+      "mean_forecast_p": 0.4508,
+      "realized_freq": 0.4359,
+      "brier_contrib": 0.25514,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.5-0.6",
+      "n": 71,
+      "mean_forecast_p": 0.5139,
+      "realized_freq": 0.5775,
+      "brier_contrib": 0.24053,
+      "default_price_share": 0.704,
+      "low_information_flag": true,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.6-0.7",
+      "n": 16,
+      "mean_forecast_p": 0.6394,
+      "realized_freq": 0.625,
+      "brier_contrib": 0.22649,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.7-0.8",
+      "n": 18,
+      "mean_forecast_p": 0.7361,
+      "realized_freq": 0.6111,
+      "brier_contrib": 0.25446,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.8-0.9",
+      "n": 9,
+      "mean_forecast_p": 0.8608,
+      "realized_freq": 1.0,
+      "brier_contrib": 0.02008,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    },
+    {
+      "price_bin": "0.9-1.0",
+      "n": 33,
+      "mean_forecast_p": 0.9621,
+      "realized_freq": 0.8788,
+      "brier_contrib": 0.10934,
+      "default_price_share": 0.0,
+      "low_information_flag": false,
+      "source": "historical_bootstrap"
+    }
+  ],
+  "signal_verdicts": [
+    {
+      "signal": "favorite_longshot",
+      "metric": "favorite_gap",
+      "in_sample": -0.1198,
+      "out_of_sample": 0.0522,
+      "persists_across_split": false,
+      "beats_market": false,
+      "verdict": "sign_flip"
+    },
+    {
+      "signal": "favorite_longshot",
+      "metric": "longshot_overpricing",
+      "in_sample": -0.0173,
+      "out_of_sample": 0.014,
+      "persists_across_split": false,
+      "beats_market": false,
+      "verdict": "sign_flip"
+    },
+    {
+      "signal": "price_extremity",
+      "metric": "delta",
+      "in_sample": -0.0017,
+      "out_of_sample": 0.00042,
+      "persists_across_split": false,
+      "beats_market": false,
+      "verdict": "sign_flip"
+    }
+  ],
+  "signal_detail": {
+    "favorite_longshot_in_sample": {
+      "favorite_n": 26,
+      "favorite_mean_price": 0.966,
+      "favorite_realized_freq": 0.8462,
+      "favorite_gap": -0.1198,
+      "longshot_n": 90,
+      "longshot_mean_price": 0.016,
+      "longshot_realized_freq": 0.0333,
+      "longshot_overpricing": -0.0173
+    },
+    "favorite_longshot_out_of_sample": {
+      "favorite_n": 7,
+      "favorite_mean_price": 0.9478,
+      "favorite_realized_freq": 1.0,
+      "favorite_gap": 0.0522,
+      "longshot_n": 148,
+      "longshot_mean_price": 0.0208,
+      "longshot_realized_freq": 0.0068,
+      "longshot_overpricing": 0.014
+    },
+    "price_extremity_in_sample": {
+      "market_brier": 0.14905,
+      "extremity_snapped_brier": 0.15075,
+      "extremity_improves_brier": false,
+      "delta": -0.0017
+    },
+    "price_extremity_out_of_sample": {
+      "market_brier": 0.09369,
+      "extremity_snapped_brier": 0.09326,
+      "extremity_improves_brier": true,
+      "delta": 0.00042
+    }
+  },
+  "edge_source_breakdown": [
+    {
+      "edge_source": "other",
+      "n": 296,
+      "market_brier": 0.07127,
+      "mean_signed_movement_toward_truth": 0.353
+    },
+    {
+      "edge_source": "sports",
+      "n": 141,
+      "market_brier": 0.19527,
+      "mean_signed_movement_toward_truth": 0.125
+    },
+    {
+      "edge_source": "crypto",
+      "n": 83,
+      "market_brier": 0.17866,
+      "mean_signed_movement_toward_truth": 0.1674
+    },
+    {
+      "edge_source": "geopolitics",
+      "n": 14,
+      "market_brier": 0.02358,
+      "mean_signed_movement_toward_truth": 0.4088
+    },
+    {
+      "edge_source": "tech_ai",
+      "n": 4,
+      "market_brier": 0.36301,
+      "mean_signed_movement_toward_truth": 0.0267
+    }
+  ],
+  "pull_stats": {
+    "raw_markets_seen": 4000,
+    "rej_low_volume": 2451,
+    "rej_short_duration": 893,
+    "accepted": 560,
+    "rej_not_clean_binary": 54
+  },
+  "ingestion_contract": {
+    "consumer": "skills/recalibrate",
+    "how": "Treat each calibration_rows entry as a Beta prior for its price bin: pseudo-count = n (optionally damped), prior mean = realized_freq. recalibrate maps Polymarket price bins (0.1 wide) onto its own lo-hi calibration buckets and seeds bucket `adjustment`/`status` from the prior until live resolved_n dominates. DO NOT hand-edit state/calibration.json \u2014 live cycles own it; ingestion is a code path in recalibrate that reads THIS file and is clearly flagged source:'historical_bootstrap'.",
+    "damp_low_information_bins": "Bins with low_information_flag=true (default_price_share>=0.30) are dominated by illiquid markets parked at the 0.50 CLOB seed price; their realized_freq is an artifact, not an edge. Down-weight their pseudo-count (e.g. x0.25) or skip seeding them.",
+    "do_not": "Never present these as the agent's own track record."
+  }
+}
