@@ -14,12 +14,16 @@ Stateless. Callers: `circuit-breaker`, `sizing`, `reflect`.
 ### `nav() → {nav_usdc, cash_usdc, positions_value_usdc, stale_flags[]}`
 
 ```
-nav_usdc = cash_usdc + Σ position.shares * mark_used
+nav_usdc = cash_usdc + Σ position.shares * mark_liquidation
 ```
 
-Per position:
-- Both sides + quote ≤15min → midpoint.
-- One side + ≤15min → last trade.
+**Cost-honest (v3):** NAV marks longs at **liquidation value = `best_bid`** (what you'd actually receive selling now), never midpoint. Per position store both:
+- `mark_mid` = `(best_bid + best_ask)/2` — reference / display only.
+- `mark_liquidation` = `best_bid` for a long (the SELL-side executable price). **NAV, the 5% cap, and the breaker all use `mark_liquidation`.**
+
+Per position freshness:
+- Both sides + quote ≤15min → `best_bid` (liquidation) + `best_bid`/`best_ask` for `mark_mid`.
+- One side + ≤15min → last trade (use for both marks; flag thin).
 - Else → `stale:true`, use most recent, append `{token_id, reason}` to `stale_flags`.
 
 ### `baseline_nav() → {nav_usdc, source} | null`

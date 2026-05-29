@@ -38,7 +38,9 @@ Costs 1 Gamma source. Skip if `cached_at >= now - 24h`.
 GET /book?token_id=<token_id>
 ```
 
-Both sides + ≤15min → `midpoint = (best_bid + best_ask)/2`. One side + ≤15min → last trade. Else `stale:true`. CLOB calls are NOT research sources.
+Both sides + ≤15min → return `best_bid`, `best_ask`, `spread = best_ask - best_bid`, `executable_price` (= `best_ask` for a BUY, `best_bid` for a SELL), and `midpoint = (best_bid + best_ask)/2` (**reference only — never the trade price**). One side + ≤15min → last trade. Else `stale:true`. CLOB calls are NOT research sources.
+
+**Cost-honest (v3):** you buy at the ask, sell at the bid. `executable_price`/`best_ask`/`best_bid` drive fills (`skills/trade`), marks (`skills/risk`), and `edge_net` (`strategy/current.md`); `midpoint` is for display + Kelly payout odds only.
 
 ### `attach_signals(universe, research_notes)`
 
@@ -62,7 +64,7 @@ Sort: `exploit_eligible desc`, `edge_score desc`, `liquidity_num desc`. Apply le
 3. **Attach signals.** Read today's research thesis cards. Match by `market_ids` or keyword. Populate or leave `null`.
 4. **Fresh-price snapshot per candidate.** `book()` on each BUY-side `token_id`. Markets with stale books flagged `stale:true` but kept.
 5. **Rank** via `rank()`.
-6. **Candidate record fields:** `market_id`, `condition_id`, `token_id`, `outcome`, `market_question`, `event_slug`, `side:"BUY"`, `best_bid`, `best_ask`, `midpoint`, `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id` (may be null), `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `disconfirming_signals`, `learning_intent` (left null; assigned by trade-window step 6).
+6. **Candidate record fields:** `market_id`, `condition_id`, `token_id`, `outcome`, `market_question`, `event_slug`, `side:"BUY"`, `best_bid`, `best_ask`, `spread`, `executable_price` (= `best_ask` for BUY), `midpoint` (reference only), `liquidity_num`, `volume_num`, `close_time`, `your_p`, `market_p`, `edge_bps`, `source_ts`, `stale`, `thesis_id` (may be null), `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `confidence`, `calibration_bucket`, `resolution_criteria`, `disconfirming_signals`, `learning_intent` (left null; assigned by trade-window step 6).
 7. **Write file** caller-named (`watchlist.md` pre-market, `candidates.md` market-open). Frontmatter + table.
 8. **`candidate_rank`** via `journal`:
    ```json

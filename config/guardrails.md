@@ -1,6 +1,10 @@
 # Guardrails
 
-Human-owned. Reflection cannot edit this file; recommendations surface via daily summary.
+Human-owned. Reflection cannot edit this file; recommendations surface via daily summary. (v3 cost-honest edits supervisor-authorized 2026-05-29 — see pm/prds/v3-edge-and-learning.md.)
+
+## Cost-honest prices (v3)
+
+You **buy at the ask, sell at the bid** — midpoint is never the trade or mark price. Sizing prices entries at `best_ask` (`new_order_notional = shares * best_ask`); NAV marks longs at `best_bid` (liquidation value). The 5% cap and the circuit breaker both operate on **liquidation NAV**. Midpoint is reference/display only.
 
 ## Position sizing — 5% per token (`skills/sizing`)
 
@@ -9,7 +13,7 @@ existing_token_risk + new_order_notional + fees <= 0.05 * NAV
 new_order_notional + fees                       <= cash_usdc
 ```
 
-`NAV = cash + Σ(shares * fresh_mark)`. Fresh mark = CLOB midpoint with `ts ≤ 15min`. `existing_token_risk` includes open positions + open orders on same token. Stale NAV → no new trades.
+`NAV = cash + Σ(shares * mark_liquidation)`, `mark_liquidation = best_bid` for a long (CLOB `ts ≤ 15min`). `new_order_notional = shares * best_ask` (entry at the ask). `existing_token_risk` includes open positions + open orders on same token. Stale NAV → no new trades.
 
 ## Correlation
 
@@ -25,7 +29,7 @@ Quotes >15 min stale → no sizing, no trade.
 
 ## Circuit breaker — -10% / 24h (`skills/circuit-breaker`)
 
-`rolling_24h_pnl <= -0.10 * baseline_NAV` → halt, log, notify, commit, push, stop. Baseline = latest `nav_snapshot` with `ts ≤ now - 24h`, else `starting_capital`. Only humans clear. Unexplained cash delta also halts.
+`rolling_24h_pnl <= -0.10 * baseline_NAV` → halt, log, notify, commit, push, stop. Both current and baseline NAV are liquidation-marked (longs at `best_bid`). Baseline = latest `nav_snapshot` with `ts ≤ now - 24h`, else `starting_capital`. Only humans clear. Unexplained cash delta also halts.
 
 ## Research cap — 3 sources/cycle
 

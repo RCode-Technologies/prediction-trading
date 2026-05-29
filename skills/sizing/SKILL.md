@@ -23,7 +23,7 @@ Explore candidates also carry `explore_rank ∈ {1,2,3}` (cycle probe slot), use
 
 ## Steps
 
-1. **Re-check midpoint** via `markets` fresh-price helper. Stale/one-sided → reject (exploit: `decision reason:"stale_mark"`; explore: still emit forecast at last good midpoint, flag `stale:true`).
+1. **Re-check book** via `markets.book()` (gives `best_bid`, `best_ask`, `spread`, `executable_price`, `midpoint`-reference). Stale/one-sided → reject (exploit: `decision reason:"stale_mark"`; explore: still emit forecast at last good midpoint, flag `stale:true`).
 
 2. **Resolve `your_p` by intent.**
 
@@ -44,20 +44,20 @@ Explore candidates also carry `explore_rank ∈ {1,2,3}` (cycle probe slot), use
 
 7. **Observation short-circuit.** `mode.observation_only==true` → STOP, forecast is the entire output.
 
-8. **Fractional Kelly (exploit only):**
+8. **Fractional Kelly (exploit only)** — cost-honest: you buy at `best_ask`, so edge + price are taken at the ask (`strategy/current.md` § Net edge):
    ```
-   edge               = your_p - market_p
-   kelly_fraction     = edge / (1 - market_p)
+   edge_net           = your_p - best_ask          # net of spread; the only edge that counts
+   kelly_fraction     = edge_net / (1 - best_ask)
    strategy_frac      = 0.25
    thesis_sizing_mult = hypothesis_registry[thesis_id].sizing_mult  # default 1.0
    source_penalty     = Π provider: 0.5 if penalized else 1.0
    effective_frac     = strategy_frac * thesis_sizing_mult * source_penalty
    desired_notional   = clamp(kelly_fraction * effective_frac * NAV, 0, 0.05 * NAV)
-   shares             = floor(desired_notional / market_p / share_lot)
-   new_order_notional = shares * market_p
-   estimated_fees     = <Polymarket fee schedule>
+   shares             = floor(desired_notional / best_ask / share_lot)
+   new_order_notional = shares * best_ask
+   fee_usdc           = round(fee_bps / 10000 * new_order_notional, 6)   # fee_bps from strategy (Polymarket taker = 0 bps today); field always present
    ```
-   Demoted thesis → `decision reason:"thesis_demoted"`, shares 0. Probation → `sizing_mult:0.5`.
+   `edge_net <= 0` (or Kelly ≤ 0) → forecast-only. Demoted thesis → `decision reason:"thesis_demoted"`, shares 0. Probation → `sizing_mult:0.5`. (The binding net-edge **floor** gate lands in v3 Phase 2; Phase 1 just prices the edge honestly.)
 
 9. **5% cap.** Reduce shares until both formulas pass. `shares==0` → `decision reason:"below_min_size"`, stop.
 
@@ -67,9 +67,9 @@ Explore candidates also carry `explore_rank ∈ {1,2,3}` (cycle probe slot), use
 
 12. **Duplicate check.** Grep trade-log; found → `decision reason:"idempotency_duplicate"`, stop.
 
-13. **Emit `decision`** via `journal` (exploit only):
+13. **Emit `decision`** via `journal` (exploit only). `price` is the executable buy price (`best_ask`), not midpoint; carry the book + `edge_net` so `trade` and learning are cost-honest:
     ```json
-    {"event_type":"decision","forecast_id":"<fid>","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_usdc":<est>,"idempotency_key":"<key>","order_id":null,"strategy_version":"<vN>","kelly_fraction":<n>,"strategy_fraction":<n>,"expected_value_usdc":<n>,"risk_bucket_id":"<bucket>","thesis_id":"<id>","feature_tags":["<tag>"],"learning_intent":"exploit","reason":"<short>"}
+    {"event_type":"decision","forecast_id":"<fid>","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<best_ask>,"best_bid":<bid>,"best_ask":<ask>,"spread":<spread>,"edge_net":<your_p-best_ask>,"shares":<n>,"notional_usdc":<usdc>,"fee_bps":<bps>,"fee_usdc":<computed>,"idempotency_key":"<key>","order_id":null,"strategy_version":"<vN>","kelly_fraction":<n>,"strategy_fraction":<n>,"expected_value_usdc":<n>,"risk_bucket_id":"<bucket>","thesis_id":"<id>","feature_tags":["<tag>"],"learning_intent":"exploit","reason":"<short>"}
     ```
 
 ## Failure modes

@@ -1,6 +1,6 @@
 ---
 name: trade
-description: Execute the sized decision. Paper = synthetic fill at fresh midpoint. Mainnet = py-clob-client limit BUY with pre/post-submit push. Only skill that touches WALLET_SEED.
+description: Execute the sized decision. Paper = synthetic fill at the executable price (best_ask BUY / best_bid SELL), fees modeled. Mainnet = py-clob-client limit BUY with pre/post-submit push. Only skill that touches WALLET_SEED.
 inputs: decision event, config/mode.json
 outputs: paper_fill OR mainnet_order_submitted + mainnet_fill OR preflight_failed; updated portfolio.json
 ---
@@ -12,12 +12,19 @@ Branches on `mode.network`.
 ## Paper
 
 1. `observation_only==true` → exit (sizing's `forecast` was the output).
-2. Fresh midpoint via 1 CLOB book call (not research). Synthesize fill at midpoint.
-3. **`paper_fill`** via `journal`:
-   ```json
-   {"event_type":"paper_fill","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","price":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_usdc":0,"idempotency_key":"<key>","order_id":null}
+2. Fresh book via 1 CLOB call (not research; `markets.book()`). **Cost-honest fill price — never the midpoint:**
    ```
-4. Update `state/portfolio.json` atomically: subtract `notional_usdc` from `cash_usdc`; upsert position with `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `shares`, `avg_price`, `mark_price`, `market_value_usdc`, `cost_basis_usdc`, `opened_at`, `updated_at`, `status:"open"`.
+   fill_price = best_ask   # BUY
+   fill_price = best_bid   # SELL (reduce/close)
+   notional_usdc = shares * fill_price
+   fee_usdc      = round(fee_bps / 10000 * notional_usdc, 6)   # fee_bps from strategy; Polymarket taker = 0 bps today
+   ```
+   One-sided/stale book → no fill (treat as `sizing` stale-mark reject). `fee_bps` defaults to **0** (current Polymarket taker schedule), but the field + formula are **always present and logged** — a future non-zero schedule only changes `fee_bps`.
+3. **`paper_fill`** via `journal` (`fill_price` = executable side, `fee_usdc` computed — never silently omitted):
+   ```json
+   {"event_type":"paper_fill","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","fill_price":<best_ask|best_bid>,"best_bid":<bid>,"best_ask":<ask>,"midpoint":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_bps":<bps>,"fee_usdc":<computed>,"idempotency_key":"<key>","order_id":null}
+   ```
+4. Update `state/portfolio.json` atomically: subtract `notional_usdc + fee_usdc` from `cash_usdc`; upsert position with `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `shares`, `avg_price` (= `fill_price` blended), `mark_mid`, `mark_liquidation` (= `best_bid` for a long; the mark NAV uses — see `skills/risk`), `market_value_usdc` (at `mark_liquidation`), `cost_basis_usdc`, `opened_at`, `updated_at`, `status:"open"`.
 5. **Never** import a Polymarket SDK, read `WALLET_SEED`, or sign in paper.
 
 ## Mainnet — preflights (fail-closed; first fail → `preflight_failed`, exit)
