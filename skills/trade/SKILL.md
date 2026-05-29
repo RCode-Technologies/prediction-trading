@@ -20,11 +20,14 @@ Branches on `mode.network`.
    fee_usdc      = round(fee_bps / 10000 * notional_usdc, 6)   # fee_bps from strategy; Polymarket taker = 0 bps today
    ```
    One-sided/stale book → no fill (treat as `sizing` stale-mark reject). `fee_bps` defaults to **0** (current Polymarket taker schedule), but the field + formula are **always present and logged** — a future non-zero schedule only changes `fee_bps`.
-3. **`paper_fill`** via `journal` (`fill_price` = executable side, `fee_usdc` computed — never silently omitted):
+3. **`paper_fill`** via `journal` (`fill_price` = executable side, `fee_usdc` computed — never silently omitted). SELL fills (the `risk_reduction`/disconfirmation exit path from Phase 5) also log realized P&L:
    ```json
-   {"event_type":"paper_fill","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY","fill_price":<best_ask|best_bid>,"best_bid":<bid>,"best_ask":<ask>,"midpoint":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_bps":<bps>,"fee_usdc":<computed>,"idempotency_key":"<key>","order_id":null}
+   {"event_type":"paper_fill","market_id":"<id>","condition_id":"<cid>","token_id":"<tid>","outcome":"<o>","side":"BUY|SELL","fill_price":<best_ask|best_bid>,"best_bid":<bid>,"best_ask":<ask>,"midpoint":<mid>,"shares":<n>,"notional_usdc":<usdc>,"fee_bps":<bps>,"fee_usdc":<computed>,"realized_pnl_usdc":<n|null>,"idempotency_key":"<key>","order_id":null}
    ```
-4. Update `state/portfolio.json` atomically: subtract `notional_usdc + fee_usdc` from `cash_usdc`; upsert position with `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `shares`, `avg_price` (= `fill_price` blended), `mark_mid`, `mark_liquidation` (= `best_bid` for a long; the mark NAV uses — see `skills/risk`), `market_value_usdc` (at `mark_liquidation`), `cost_basis_usdc`, `opened_at`, `updated_at`, `status:"open"`.
+   `realized_pnl_usdc` is null on BUY, set on SELL (= `shares_sold × (fill_price − avg_price)`).
+4. Update `state/portfolio.json` atomically.
+   - **BUY (Phase 1, unchanged):** subtract `notional_usdc + fee_usdc` from `cash_usdc`; upsert position with `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `shares`, `avg_price` (= `fill_price` blended), `mark_mid`, `mark_liquidation` (= `best_bid` for a long; the mark NAV uses — see `skills/risk`), `market_value_usdc` (at `mark_liquidation`), `cost_basis_usdc`, `opened_at`, `updated_at`, `status:"open"`.
+   - **SELL (`risk_reduction` exit):** on the existing position (`token_id`), decrement `shares` by `shares_sold`; realize `pnl = shares_sold × (fill_price − avg_price)` (`fill_price = best_bid`); credit `proceeds − fee_usdc` to `cash_usdc` (`proceeds = shares_sold × best_bid = notional_usdc`); reduce `cost_basis_usdc` by `shares_sold × avg_price` (`avg_price` unchanged on a reduce); refresh `mark_*` + `market_value_usdc` + `updated_at`. When `shares` reaches 0 (full close), **remove** the position from `positions[]`. Never scale shares to fit a baseline.
 5. **Never** import a Polymarket SDK, read `WALLET_SEED`, or sign in paper.
 
 ## Mainnet — preflights (fail-closed; first fail → `preflight_failed`, exit)

@@ -40,7 +40,7 @@ Never bury attribution in markdown — reflection reads JSONL.
 
 ## Allowed `event_type`
 
-`cycle_start`, `stale_lock_recovered`, `research_note`, `candidate_rank`, `forecast`, `decision`, `decision_cleared`, `paper_fill`, `mainnet_order_submitted`, `mainnet_fill`, `nav_snapshot`, `halt`, `reflection`, `notification`, `preflight_failed`, `persist_conflict`, `cycle_end`, `recap`, `phase_completed`, `phase_missed`, `null_cycle` (v2), `liveness_gap` (v2), `recalibration` (v2), `groom` (v3), `vision` (v3), `proposal` (v3), `enactment` (v3).
+`cycle_start`, `stale_lock_recovered`, `research_note`, `candidate_rank`, `forecast`, `decision`, `decision_cleared`, `paper_fill`, `mainnet_order_submitted`, `mainnet_fill`, `nav_snapshot`, `halt`, `reflection`, `notification`, `preflight_failed`, `persist_conflict`, `cycle_end`, `recap`, `phase_completed`, `phase_missed`, `null_cycle` (v2), `liveness_gap` (v2), `recalibration` (v2), `groom` (v3), `vision` (v3), `proposal` (v3), `enactment` (v3), `deposit` (v3), `withdrawal` (v3).
 
 ## Steps
 

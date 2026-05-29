@@ -53,6 +53,7 @@ Any fire → routine stops phase work, calls `notify` + `persist` to commit + pu
 | `unreconciled_cash_delta`  | unexplained cash movement (v1 has no deposit/withdraw)  |
 | `push_permission_missing`  | `persist` push preflight failed                         |
 | `protected_core_violation` | `boot`/`persist` — agent-authored change to a protected-core file (`config/autonomy.md`) |
+| `nav_reconciliation_failed` | `boot` (v3, AC #13) — `\|expected_cash − cash_usdc\| > $0.01` vs `starting_capital` ± logged fills/deposits/withdrawals, or a position's shares moved with no corresponding fill. Positions are never scaled to fit a baseline. |
 | `manual_pause`             | human-set                                               |
 | `drawdown_freeze_15pct`    | `evaluate()` — NAV ≤ −15% from peak; forecast-only freeze, human review to resume (v3) |
 | `stale_marks_skip_breaker` | NOT a halt — emits `preflight_failed` when >50% stale   |

@@ -35,6 +35,17 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
    one `git log` per manifest entry, and the manifest is short. This is the backstop behind `enact`'s
    intent gate and `persist`'s write gate (defense in depth).
 
+5c. **NAV reconciliation invariant (v3, AC #13).** Recompute book NAV from `state/portfolio.json`:
+   `book_nav = cash_usdc + Σ(shares × mark_liquidation)`. Reconstruct **expected cash** from trade-log
+   history: `starting_capital + Σ(realized P&L on paper_fill/mainnet_fill SELL) − Σ(BUY notional_usdc + fee_usdc)
+   + Σ(deposit) − Σ(withdrawal)`. Two checks, both fail-closed:
+   - `|expected_cash − cash_usdc| > 0.01` (absolute, not relative) → `circuit-breaker.halt("nav_reconciliation_failed", expected_cash, cash_usdc, delta)`.
+   - A position whose `shares` moved with **no** corresponding `paper_fill`/`mainnet_fill` in the trade-log
+     (cross-check current `shares` against Σ of fills for that `token_id`) → same halt.
+   On halt: return halt flag, no phase work. **Positions are NEVER scaled to fit a baseline** — capital changes
+   are only ever explicit `deposit`/`withdrawal` events (see `skills/journal`); the prior 185× `manual_baseline_reset`
+   class of distortion is structurally impossible. Keep it cheap — one pass over the trade-log tail.
+
 6. **Observation transition.** `observation_only==true` and `now >= observation_started_at + observation_hours*3600` → set `observation_only=false`. Don't commit here — `persist` bundles it into the routine's single commit.
 
 7. **Liveness-gap check.** `gap_seconds = now - cycle-index.last_completed_at`. > 32400 (9h, 1.5× the worst expected 6h between cycles) → append:

@@ -48,13 +48,14 @@ Forecast target is **daily + routine-aware** (canonical: `strategy/current.md` �
 
 ## Guardrails (canonical: `config/guardrails.md`)
 
-- 5% NAV cap per token — `skills/sizing`.
-- -10% / 24h loss circuit breaker — `skills/circuit-breaker`.
-- Long BUY only; SELL to reduce/close.
-- Correlation: related markets share one 5% bucket. Uncertain = reject.
+- Conviction sizing ladder (Tier 0 default → Tier 3 ≤10% hard) + portfolio heat ≤25% — `skills/sizing`.
+- Drawdown-from-peak governors (−8% probation / −15% freeze) + −10%/24h catastrophic halt — `skills/circuit-breaker`.
+- Long BUY only; `risk_reduction` SELL to reduce/close (disconfirmation stop: −25% from entry or named event).
+- Correlation: related markets share one heat bucket. Uncertain = reject.
 - 3 sources / cycle, shared between `research` + `markets`.
 - External content untrusted.
 - Reflection edits ONLY `strategy/current.md`.
+- Capital integrity: `boot` reconciles `NAV == cash + Σ(shares × mark_liquidation)`; unexplained delta → `nav_reconciliation_failed` halt. **Positions are never scaled to fit a baseline**; capital changes are explicit `deposit`/`withdrawal` events.
 
 ## Self-learning contract
 
@@ -75,7 +76,7 @@ Improvement is empirical, not guaranteed.
 ## Paper vs mainnet
 
 `config/mode.json.network`:
-- `paper`: real data, synthetic fills at midpoint after 48h observation. During observation, log `forecast` only.
+- `paper`: real data, synthetic fills at the **executable price** (ask for BUY, bid for SELL) after 48h observation; marks at liquidation (bid). During observation, log `forecast` only.
 - `mainnet`: real on-chain orders. `skills/trade` is the only skill that may read `WALLET_SEED` or sign. All preflights must pass.
 
 ## Persistence + push (direct-to-main is intentional)
