@@ -9,6 +9,11 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-05-29
+
+| 2026-05-29T12:10Z | iran-diplomacy-kharg | US-Iran meeting-by-Jun7 odds vs late-May negotiation thaw, plus Kharg Island control status by May 31 | 2354045, 1708109 |
+| 2026-05-29T12:12Z | ai-model-leaderboard-may | Will Google have the best AI model end of May? LMArena standings (Claude #1, Gemini #2) → no edge | 1975535 |
+
 ## 2026-05-28
 
 | 2026-05-28T12:08Z | macro-and-iran-update | US-Iran post-Rome-round + BTC $82k feasibility + Fed-Sep-cut re-affirm (combined macro note) | 2354045, 2350172, 1439549 |
