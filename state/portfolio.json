@@ -12,11 +12,11 @@
       "side": "BUY",
       "shares": 1350.7407,
       "avg_price": 0.372744,
-      "mark_price": 0.245,
-      "market_value_usdc": 330.93,
+      "mark_price": 0.22,
+      "market_value_usdc": 297.16,
       "cost_basis_usdc": 503.48,
       "opened_at": "2026-05-27T12:22:00Z",
-      "updated_at": "2026-05-28T22:08:11Z",
+      "updated_at": "2026-05-29T00:07:57Z",
       "status": "open",
       "market_question": "US x Iran diplomatic meeting by June 7, 2026?",
       "event_slug": "us-x-iran-diplomatic-meeting-by-329",
@@ -25,5 +25,5 @@
     }
   ],
   "open_orders": [],
-  "updated_at": "2026-05-28T22:08:11Z"
+  "updated_at": "2026-05-29T00:07:57Z"
 }
