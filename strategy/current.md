@@ -144,9 +144,22 @@ Rolling 30d Brier vs market baseline per provider (exploit slice only).
 ## Smartness scorecard (read from `state/scorecard.json`)
 
 `skills/recalibrate` keeps it fresh. Schema:
-- `exploit.{brier_agent, brier_market_p, brier_skill, calibration_slope, calibration_intercept, auc, kl_vs_market, drift_skill, resolved_n, unresolved_n}`
-- `explore.{brier_explore, brier_market_p, calibration_slope, buckets_filled, resolved_n, unresolved_n}`
-- `by_provider[]`, `by_feature_tag[]`
+- `exploit.{brier_agent, brier_market_p, brier_skill, calibration_slope, calibration_intercept, auc, kl_vs_market, drift_skill, clv_mean, clv_hit_rate, clv_n, resolved_n, unresolved_n}`
+- `explore.{brier_explore, brier_market_p, calibration_slope, buckets_filled, clv_mean, clv_hit_rate, clv_n, resolved_n, unresolved_n}`
+- `by_edge_source[]`, `by_provider[]`, `by_feature_tag[]`
+
+### CLV is the headline metric (while `resolved_n < 30`)
+
+Resolution Brier is the slow ground truth — at multi-week close times it is **months** from significance, so it is reported as **"pending ground truth"** and does not drive any decision until `resolved_n >= 30`. The **headline skill metric is closing-line value (CLV)**: does the market move *toward* our forecast after we make it?
+
+```
+clv = (market_p_later - market_p_t0) * sign(your_p - market_p_t0)   # >0 ⇒ market moved our way
+```
+
+- Snapshotted by `skills/recalibrate.snap_clv()` at **+6h / +24h / close** on every pulse, overnight-watch, and daily-close — no Gamma, no new forecasts, no added invocations. Non-null once any forecast has aged ≥6h.
+- `clv_mean` / `clv_hit_rate` are tracked **per `learning_intent`** and **per `edge_source`** (`by_edge_source[]`) — this is what tells us *which signal* is generating edge weeks before Brier can.
+- `drift_skill` is the legacy single-number seed; once `clv_n > 0`, `clv_mean` supersedes it.
+- Recaps + reflection lead with CLV while `resolved_n < 30`; Brier shown alongside as "pending ground truth." Positive CLV is *speed-of-learning* evidence, not P&L — the § Edge gate + liquidation marks still decide whether to bet (CLV can be positive while paying the spread loses money).
 
 ## Convergent calibration update law
 
@@ -195,7 +208,7 @@ OLS slope of daily `brier_skill` over 30d negative for 14 consecutive UTC dates 
 
 ## Changelog
 
-- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1: liquidation-priced fills/marks + `edge_net`. Phase 2 (this commit): binding edge gate (provenance conjuncts + net-floor), forecast/trade split, new mandatory fields (`resolution_parsed`, `reference_class`, `edge_source`, `best_bid`/`best_ask`/`spread`/`edge_net`, `sizing_tier`), v2 ε-probe floor retired for a daily routine-aware forecast target. Snapshot: `strategy/history/2026-05-29-v2.md`.
+- v3 — 2026-05-29 — cost-honest accounting, edge gate, CLV, risk doctrine (see pm/prds/v3-edge-and-learning.md). Phase 1: liquidation-priced fills/marks + `edge_net`. Phase 2: binding edge gate (provenance conjuncts + net-floor), forecast/trade split, new mandatory fields (`resolution_parsed`, `reference_class`, `edge_source`, `best_bid`/`best_ask`/`spread`/`edge_net`, `sizing_tier`), v2 ε-probe floor retired for a daily routine-aware forecast target. Phase 3 (this edit, scorecard section only): CLV promoted to headline skill metric while `resolved_n<30` (Brier "pending ground truth"); scorecard gains `clv_mean`/`clv_hit_rate`/`clv_n` per intent + `by_edge_source[]`, snapshotted on pulse/overnight-watch/daily-close (zero added invocations). Snapshot: `strategy/history/2026-05-29-v2.md`.
 - v2 — 2026-05-26 — cold-start deadlock fix: mandatory exploration, `learning_intent` taxonomy, sliced calibration ledger, action commitment per cycle, relaxed filter (liq≥2000, end≤90d), universe-first discovery. Snapshot: `strategy/history/2026-05-26-v1.md`.
 - v1 — 2026-05-24 — self-learning contract, attribution fields, smartness gates. Snapshot: `strategy/history/2026-05-24-v0.md`.
 - v0 — 2026-05-24 — observation-only seed.

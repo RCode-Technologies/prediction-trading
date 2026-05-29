@@ -21,13 +21,13 @@ Asia active, US asleep. Light monitor: marks, NAV, breaker. Opportunistic mainne
 6. `circuit-breaker.evaluate()` — cp2 (post-marks). Halted → jump to 10.
 7. **Opportunistic gate** (all required): watchlist ≤24h fresh, candidate moved ≥200 bps favorable, `liquidityNum >= 10000`, mode allows. Yes → `sizing` → `trade` for that one candidate.
 8. `circuit-breaker.evaluate()` — cp3, only if step 7 fired.
-9. **`recalibrate.sweep()`** — refresh scorecard + calibration; resolve any forecasts past `close_time` (≤1 Gamma source).
+9. **`recalibrate.sweep()`** — runs `snap_clv()` first (CLV snapshot of due open forecasts at +6h/+24h/close, ≤8 CLOB calls) + open-ledger self-check, then refreshes scorecard + calibration and resolves any forecasts past `close_time` (≤1 Gamma source).
 10. `journal.phase_completed`.
 11. `persist`.
 
 ## Source budget
 
-0 research. N CLOB book calls (1/open position + ≤1/opportunistic). CLOB ≠ research.
+0 research. N CLOB book calls (1/open position + ≤1/opportunistic + ≤8 for `snap_clv()` CLV snapshots). CLOB ≠ research.
 
 ## Failure modes
 
