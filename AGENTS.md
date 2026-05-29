@@ -58,8 +58,15 @@ Every `forecast`/`decision` carries attribution per `skills/journal` + mandatory
 
 - `skills/recalibrate` runs on every relevant journal append (post-append hook). Keeps `state/scorecard.json` + `state/calibration.json` fresh. Adaptation is inescapable.
 - `skills/recap` and `skills/reflect` read `state/scorecard.json` directly. Reflect's role narrows to governance (snapshot, version bump, regression gate).
+- `skills/envision` extends governance from *calibration* to *capability*: daily it proposes system-level changes; Sundays `skills/enact` may self-implement one low-risk, reversible, paper-only proposal. Bounded by `config/autonomy.md`. See § Self-direction.
 
 Improvement is empirical, not guaranteed.
+
+## Self-direction (governance beyond calibration)
+
+`skills/reflect` evolves strategy within current capabilities; `skills/envision` (daily, in `daily-close`) invents new ones — authoring capability proposals in `proposals/`. Sundays: it self-approves ≤1 reversible, paper-only, denylist-clean proposal and `skills/enact` implements it as one revertible commit. Veto anytime via `git revert` or `proposals/LEDGER.md` (no inbound channel). Envelope + cadence: `config/autonomy.md` (HARD).
+
+**Protected core (HARD).** The agent may never author changes to its own rails: `config/{autonomy,guardrails}.md`, `AGENTS.md`, `skills/{boot,persist,circuit-breaker,enact,recalibrate,risk}`. `boot` halts on `protected_core_violation` if any is last-authored by the agent identity; `persist` refuses to commit one under that identity. Proposals touching these are `human_application` — surfaced, never self-enacted. This is the constitution the agent cannot amend.
 
 ## Paper vs mainnet
 
@@ -70,7 +77,7 @@ Improvement is empirical, not guaranteed.
 ## Persistence + push (direct-to-main is intentional)
 
 - **`main` is the ONLY branch (HARD).** Never create, switch to, or push a non-`main` branch; never `git worktree add`. No PRs, no feature branches, no `claude/*` branches — they break routines (which assume `main`) and strand state off the brain. Only a human creates branches, explicitly. Enforced by `.claude/hooks/block-non-main-branch.sh` (PreToolUse) + `.githooks/pre-push`. Every routine ends `HEAD == origin/main`.
-- One commit per routine (mainnet pre-submit is the only exception).
+- One commit per routine (mainnet pre-submit + Sunday `enact` are the only exceptions).
 - Commit format per `skills/commit/SKILL.md` (HARD).
 - Use `git push` (no explicit ref) — some global hooks block the literal `git push origin main` pattern. `.claude/settings.local.json` whitelists git ops for this repo.
 - Never `--force` / `--no-verify` on routine pushes. `--force-with-lease` only via human direction.
@@ -95,7 +102,7 @@ Telegram, Polymarket CLOB, research APIs, RPC: all via `Bash` (curl, polymarket 
 ## Repo layout
 
 ```
-config/{guardrails.md, mode.json}
+config/{autonomy.md, guardrails.md, mode.json}
 state/{portfolio,halts,lock,cycle-index,scorecard,calibration}.json + trade-log.jsonl
 state/{universe,forecasts.open,forecasts.resolved}.jsonl
 state/archive/*.jsonl  (groom-rotated logs, off the hot path)
@@ -104,6 +111,7 @@ skills/<name>/SKILL.md  (+ skills/polymarket/ submodule)
 strategy/{current.md, history/}
 research/INDEX.md + YYYY-MM-DD/<slug>.md
 recaps/YYYY-MM-DD.md (+ YYYY-Www.md Sundays)
+proposals/{VISION.md, LEDGER.md, horizon.jsonl, YYYY-MM-DD-<slug>.md, archive/}
 ```
 
 `pm/` is human-only. `CLAUDE.md` is a one-line redirect shim.

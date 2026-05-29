@@ -28,6 +28,13 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
 
 5. **Halts.** `halts.json.active==true` → return halt flag; no phase work.
 
+5b. **Protected-core integrity audit.** For each path in `config/autonomy.md` § Protected core:
+   `git log -1 --format=%ae -- <path>`. Empty (no history yet) → skip. Author email ==
+   `${GIT_AUTHOR_EMAIL:-agent@prediction-trading.local}` → the agent modified its own rails →
+   `circuit-breaker.halt("protected_core_violation", path)`, return halt flag, no phase work. Cheap —
+   one `git log` per manifest entry, and the manifest is short. This is the backstop behind `enact`'s
+   intent gate and `persist`'s write gate (defense in depth).
+
 6. **Observation transition.** `observation_only==true` and `now >= observation_started_at + observation_hours*3600` → set `observation_only=false`. Don't commit here — `persist` bundles it into the routine's single commit.
 
 7. **Liveness-gap check.** `gap_seconds = now - cycle-index.last_completed_at`. > 32400 (9h, 1.5× the worst expected 6h between cycles) → append:

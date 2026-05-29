@@ -7,7 +7,7 @@ outputs: HEAD == origin/main, lock released, cycle_end + (maybe) null_cycle even
 
 # Persist
 
-Push is the only success criterion. Direct push to `main`, no PRs. One Conventional Commit per cycle (mainnet pre-submit is the only exception). No follow-up bookkeeping commits.
+Push is the only success criterion. Direct push to `main`, no PRs. One Conventional Commit per cycle (mainnet pre-submit and Sunday `enact` self-implementation are the sanctioned exceptions). No follow-up bookkeeping commits.
 
 ## Git identity (idempotent)
 
@@ -36,6 +36,15 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
    jq -c . state/trade-log.jsonl > /dev/null
    ```
    Fail → `persist_conflict` + notify + exit (no commit).
+
+1b. **Protected-core write gate.** `persist` always commits under the agent identity, so every commit
+   is agent-authored. Check the working tree for changes to any `config/autonomy.md` § Protected core
+   path (`git status --porcelain -- <path>…`). Any match → the agent is attempting to alter its own
+   rails: reset those paths to HEAD (`git checkout HEAD -- <paths>`, discarding the illegitimate edit —
+   the agent always boots from clean `main`, so a dirty protected file can only be this cycle's own
+   write; the intent is preserved in the proposal RFC + `enactment` event), then
+   `circuit-breaker.halt("protected_core_violation", paths)`. The cycle then persists the halt normally
+   (`fix(halt): protected_core_violation`) — the discarded paths are not in the commit.
 
 2. **Null-cycle audit.** Count event types this cycle (`cycle_id == <cid>`) vs floor in `strategy/current.md` § Decision rules (also mirrored in AGENTS.md). Floor missed → append `null_cycle` + notify (suppression-exempt). Still commits + pushes — silent failure is the enemy. Suppress `null_cycle` if a halt is the reason for the miss.
    ```json

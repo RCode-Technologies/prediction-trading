@@ -15,15 +15,15 @@ Plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>`. No MCP. `T
 
 ## Suppression
 
-- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `strategy_evolution`, `circuit_breaker`, `null_cycle`, `liveness_gap`. Per-trade suppressed.
+- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`, `enactment`, `circuit_breaker`, `null_cycle`, `liveness_gap`. Per-trade suppressed.
 - **Mainnet:** all of paper + `trade_placed`, `preflight_failed`, `persist_conflict`, `phase_missed`.
-- **Suppression-exempt (always send if creds present):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `persist_conflict`. These break silent-failure modes.
+- **Suppression-exempt (always send if creds present):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `persist_conflict`, `enactment`. The first four break silent-failure modes; `enactment` makes every autonomous code change (and how to veto it) always visible.
 - Missing creds in paper → silent skip. Missing creds in mainnet → handled by `trade` as `preflight_failed`.
 
 ## Steps
 
 1. Resolve kinds to send (mode + caller).
-2. **Date-based dedupe** (once-per-UTC-date kinds: `daily_summary`, `weekly_recap`, `strategy_evolution`). Grep trade-log for prior `notification kind:"<this_kind>"` with `date:<today UTC>` → skip if present. (`discovery_summary` is per-phase and must NOT use this dedupe; `*_failed` suffixes are distinct kinds so retries aren't blocked.)
+2. **Date-based dedupe** (once-per-UTC-date kinds: `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`). Grep trade-log for prior `notification kind:"<this_kind>"` with `date:<today UTC>` → skip if present. (`discovery_summary` is per-phase and must NOT use this dedupe; `*_failed` suffixes are distinct kinds so retries aren't blocked.)
 3. **Compose payload.** Load only the template file matching the `kind` (see § Templates). Substitute placeholders; sanitize external content (`<market>`, `<reason>`, leads) for unbalanced `*` `_` `` ` ``. Never include secrets, wallet addrs, raw env vars, token-bearing URLs.
 4. **Pick transport by size.** Telegram `sendMessage` caps `text` at 4096 chars (`printf '%s' "$payload" | wc -c`).
    - ≤4096 → `sendMessage` (4a).
@@ -64,6 +64,9 @@ Plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>`. No MCP. `T
 | `daily_summary`     | positions open or fills today | [templates/daily_summary_full.md](templates/daily_summary_full.md)                      |
 | `weekly_recap`      | Sundays                       | [templates/weekly_recap.md](templates/weekly_recap.md)                                  |
 | `strategy_evolution`| reflect edited or guard held  | [templates/strategy_evolution.md](templates/strategy_evolution.md)                      |
+| `proposal`          | envision surfaced a proposal  | [templates/proposal.md](templates/proposal.md)                                          |
+| `vision_weekly`     | Sunday deep envision pass     | [templates/vision_weekly.md](templates/vision_weekly.md)                                |
+| `enactment`         | enact status transition (Sun) | [templates/enactment.md](templates/enactment.md)                                        |
 | `trade_placed`      | mainnet only, per fill        | [templates/trade_placed.md](templates/trade_placed.md)                                  |
 | `circuit_breaker`   | any breaker trip              | [templates/circuit_breaker.md](templates/circuit_breaker.md)                            |
 | `preflight_failed`  | trade preflight gate          | [templates/preflight_failed.md](templates/preflight_failed.md)                          |

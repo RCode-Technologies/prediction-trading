@@ -41,6 +41,7 @@ Any fire → routine stops phase work, calls `notify` + `persist` to commit + pu
 | `no_baseline_nav`          | no snapshots and no `starting_capital`                  |
 | `unreconciled_cash_delta`  | unexplained cash movement (v1 has no deposit/withdraw)  |
 | `push_permission_missing`  | `persist` push preflight failed                         |
+| `protected_core_violation` | `boot`/`persist` — agent-authored change to a protected-core file (`config/autonomy.md`) |
 | `manual_pause`             | human-set                                               |
 | `stale_marks_skip_breaker` | NOT a halt — emits `preflight_failed` when >50% stale   |
 

@@ -23,7 +23,7 @@ Canonical commit-message rules. Non-conforming messages corrupt the structured e
 
 ## Scopes
 
-`cycle` (heartbeat, no-ops, null cycles) · `research` · `trade` · `recap` · `strategy` (reflect edits) · `halt` · `decision` (mainnet pre-submit) · `state` (schema/file) · `agent` (AGENTS.md) · `skill` · `routine`.
+`cycle` (heartbeat, no-ops, null cycles) · `research` · `trade` · `recap` · `strategy` (reflect edits) · `halt` · `decision` (mainnet pre-submit) · `state` (schema/file) · `agent` (AGENTS.md + self-direction: envision/enact/auto-rollback) · `skill` · `routine` · `repo` (repo-wide hygiene / groom).
 
 Adding a scope is itself an `agent` or `skill` change — document it here in the same commit.
 
@@ -47,11 +47,25 @@ Adding a scope is itself an `agent` or `skill` change — document it here in th
 | daily-close                      | `feat(recap): daily <YYYY-MM-DD> [cycle <cid>]`               |
 | daily-close (Sunday)             | `feat(recap): daily + weekly <YYYY-Www> [cycle <cid>]`        |
 | daily-close (strategy edit)      | `feat(strategy): reflect -> v<N+1> [cycle <cid>]`             |
+| daily-close (proposal surfaced)  | `feat(agent): envision <slug> [cycle <cid>]`                  |
+| daily-close (Sunday vision-only) | `docs(agent): vision weekly <YYYY-Www> [cycle <cid>]`         |
 | heartbeat                        | `chore(cycle): heartbeat [cycle <cid>]`                       |
 | heartbeat (liveness gap)         | `fix(cycle): heartbeat liveness_gap <N>h [cycle <cid>]`       |
 | any — floor missed               | `fix(cycle): null_cycle <reason> [cycle <cid>]`               |
 | any — breaker tripped            | `fix(halt): <reason> [cycle <cid>]`                           |
 | mainnet pre-submit (rare)        | `feat(decision): pre-submit <idempotency_key> [cycle <cid>]`  |
+| enact self-implementation (Sun)  | `feat(agent): enact <slug> [cycle <cid>]`                     |
+| enact auto-rollback (Sun)        | `revert(agent): auto-rollback <slug> [cycle <cid>]`           |
+
+`daily-close` is **one commit** but can carry recap + reflect + envision artifacts. Pick the single
+headline by first match (most-consequential-wins); the rest go in the body:
+1. reflect edited `strategy/current.md` → `feat(strategy): reflect -> v<N+1>`.
+2. envision surfaced (daily) or self-approved (Sunday) a proposal → `feat(agent): envision <slug>`.
+3. Sunday weekly recap written → `feat(recap): daily + weekly <YYYY-Www>`.
+4. plain daily → `feat(recap): daily <YYYY-MM-DD>`.
+`docs(agent): vision weekly` is reserved for the rare case where a Sunday `VISION.md` revision is the
+*only* new durable artifact (e.g. a re-run where the recap was already deduped). `enact` does **not**
+ride here — it pushes its own standalone revertible commit(s) (the `enact` rows above; see `skills/enact`).
 
 ## Body
 
