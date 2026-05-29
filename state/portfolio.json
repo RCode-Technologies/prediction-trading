@@ -13,10 +13,10 @@
       "shares": 1350.7407,
       "avg_price": 0.372744,
       "mark_price": 0.205,
-      "market_value_usdc": 276.90,
+      "market_value_usdc": 276.9,
       "cost_basis_usdc": 503.48,
       "opened_at": "2026-05-27T12:22:00Z",
-      "updated_at": "2026-05-29T04:10:07Z",
+      "updated_at": "2026-05-29T08:15:18Z",
       "status": "open",
       "market_question": "US x Iran diplomatic meeting by June 7, 2026?",
       "event_slug": "us-x-iran-diplomatic-meeting-by-329",
@@ -25,5 +25,5 @@
     }
   ],
   "open_orders": [],
-  "updated_at": "2026-05-29T04:10:07Z"
+  "updated_at": "2026-05-29T08:15:18Z"
 }
