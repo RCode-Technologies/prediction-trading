@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260530T000938Z-5e3a2bcd",
-  "last_started_at": "2026-05-30T00:09:38Z",
-  "last_completed_at": "2026-05-30T00:09:38Z",
+  "last_cycle_id": "20260530T040853Z-ee8f34a3",
+  "last_started_at": "2026-05-30T04:08:53Z",
+  "last_completed_at": "2026-05-30T04:08:53Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -143,6 +143,11 @@
       "ts": "2026-05-30T00:09:38Z",
       "nav_usdc": 9739.65,
       "cycle_id": "20260530T000938Z-5e3a2bcd"
+    },
+    {
+      "ts": "2026-05-30T04:08:53Z",
+      "nav_usdc": 9739.65,
+      "cycle_id": "20260530T040853Z-ee8f34a3"
     }
   ]
 }
