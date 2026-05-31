@@ -1,8 +1,1 @@
-{
-  "schema_version": 1,
-  "active": false,
-  "cycle_id": null,
-  "started_at": null,
-  "expires_at": null,
-  "released_at": "2026-05-31T04:19:45Z"
-}
+{"schema_version":1,"active":false,"cycle_id":null,"started_at":null,"expires_at":null}
