@@ -256,3 +256,4 @@
 {"schema_version":1,"event_id":"20260531T041928Z-a3accf4e-cycle_start-1","cycle_id":"20260531T041928Z-a3accf4e","event_type":"cycle_start","ts":"2026-05-31T04:19:28Z","mode":"paper","phase":"overnight_watch"}
 {"schema_version":1,"event_id":"20260531T041928Z-a3accf4e-phase_completed-1","cycle_id":"20260531T041928Z-a3accf4e","event_type":"phase_completed","ts":"2026-05-31T04:19:40Z","phase":"overnight_watch"}
 {"schema_version":1,"event_id":"20260531T041928Z-a3accf4e-cycle_end-1","cycle_id":"20260531T041928Z-a3accf4e","event_type":"cycle_end","ts":"2026-05-31T04:19:45Z","phase":"overnight_watch"}
+{"schema_version":1,"event_id":"20260531T041928Z-a3accf4e-nav_snapshot-1","cycle_id":"20260531T041928Z-a3accf4e","event_type":"nav_snapshot","ts":"2026-05-31T04:19:50Z","mode":"paper","phase":"overnight_watch","nav_usdc":9739.65,"cash_usdc":9739.65,"positions_value_usdc":0,"stale_flags":[],"halt_active":true}
