@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260601T001145Z-56db5d96",
-  "last_started_at": "2026-06-01T00:11:45Z",
-  "last_completed_at": "2026-06-01T00:11:48Z",
+  "last_cycle_id": "20260601T001131Z-56db5d96",
+  "last_started_at": "2026-06-01T00:11:31Z",
+  "last_completed_at": "2026-06-01T00:13:11Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
