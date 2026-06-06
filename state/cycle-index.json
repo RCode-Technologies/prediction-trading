@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260606T120850Z-bef2f41f",
-  "last_started_at": "2026-06-06T12:08:50Z",
-  "last_completed_at": "2026-06-06T12:09:05Z",
+  "last_cycle_id": "20260606T160646Z-dbdd7175",
+  "last_started_at": "2026-06-06T16:06:46Z",
+  "last_completed_at": "2026-06-06T16:07:20Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -313,10 +313,21 @@
       "ts": "2026-06-06T12:09:05Z",
       "nav_usdc": 9739.65,
       "cycle_id": "20260606T120850Z-bef2f41f"
+    },
+    {
+      "ts": "2026-06-06T16:07:20Z",
+      "nav_usdc": 9739.65,
+      "cycle_id": "20260606T160646Z-dbdd7175"
     }
   ],
   "last_phase": "heartbeat",
   "recent": [
+    {
+      "cycle_id": "20260606T160646Z-dbdd7175",
+      "ts": "2026-06-06T16:07:20Z",
+      "phase": "heartbeat",
+      "last_phase": "heartbeat"
+    },
     {
       "cycle_id": "20260606T120850Z-bef2f41f",
       "ts": "2026-06-06T12:09:05Z",
@@ -328,12 +339,6 @@
       "ts": "2026-06-06T08:08:02Z",
       "phase": "heartbeat",
       "last_phase": "heartbeat"
-    },
-    {
-      "cycle_id": "20260606T040934Z-4305a9ae",
-      "ts": "2026-06-06T04:11:24Z",
-      "phase": "overnight_watch",
-      "last_phase": "overnight_watch"
     }
   ]
 }
