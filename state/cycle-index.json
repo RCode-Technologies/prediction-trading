@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260606T180702Z-6b0c0675",
-  "last_started_at": "2026-06-06T18:07:30Z",
-  "last_completed_at": "2026-06-06T18:07:30Z",
+  "last_cycle_id": "20260606T220541Z-38c19f9f",
+  "last_started_at": "2026-06-06T22:07:23Z",
+  "last_completed_at": "2026-06-06T22:08:19Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -323,6 +323,11 @@
       "ts": "2026-06-06T18:07:30Z",
       "nav_usdc": 9739.65,
       "cycle_id": "20260606T180702Z-6b0c0675"
+    },
+    {
+      "ts": "2026-06-06T22:08:19Z",
+      "nav_usdc": 9739.65,
+      "cycle_id": "20260606T220541Z-38c19f9f"
     }
   ],
   "last_phase": "trade_window",
