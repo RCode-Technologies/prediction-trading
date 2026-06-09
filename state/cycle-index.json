@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260609T040853Z-132b8915",
-  "last_started_at": "2026-06-09T04:08:53Z",
-  "last_completed_at": "2026-06-09T04:11:35Z",
+  "last_cycle_id": "20260609T081051Z-d5d0ff5b",
+  "last_started_at": "2026-06-09T08:10:51Z",
+  "last_completed_at": "2026-06-09T08:11:18Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -375,7 +375,7 @@
       "cycle_id": "20260609T040853Z-132b8915"
     }
   ],
-  "last_phase": "overnight_watch",
+  "last_phase": "heartbeat",
   "recent": [
     {
       "cycle_id": "20260609T040853Z-132b8915",
