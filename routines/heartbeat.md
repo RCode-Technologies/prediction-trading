@@ -31,7 +31,7 @@ Dead-man's switch **+ CLV pulse + exit/governor check**. Cheap and idempotent. F
 
 - Lock contention with another running routine → exit clean, no commit. **Expected behavior, not a gap.**
 - Boot detects liveness gap → emit + notify; continue (heartbeat itself shouldn't add to the gap).
-- Halts active → log, persist, exit (no CLV snapshot, no NAV refresh, no exit scan this cycle — the disconfirmation stop re-fires in the next non-halted pulse / in overnight-watch / daily-close, which run their exit check before any breaker-halt jump). A `drawdown_freeze_15pct` written this cycle does not block a `risk_reduction` SELL (exits are exempt; see `config/guardrails.md`).
+- Halts active → still run step 3 (`recalibrate.snap_clv()` — read-only CLOB scoring; a halt blocks capital actions, not calibration), then log, persist, exit (no NAV refresh, no exit scan this cycle — the disconfirmation stop re-fires in the next non-halted pulse / in overnight-watch / daily-close, which run their exit check before any breaker-halt jump). A `drawdown_freeze_15pct` written this cycle does not block a `risk_reduction` SELL (exits are exempt; see `config/guardrails.md`).
 - No open forecast is due a snap → `snap_clv()` is a free no-op (`clv_snaps:0`); the pulse falls back to liveness + mark only. Not a failure.
 - No position trips the stop (the common case) → step 4b is a free no-op (`risk_reduction_fired:false`). Not a failure.
 

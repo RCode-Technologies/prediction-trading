@@ -15,15 +15,15 @@ Plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>`. No MCP. `T
 
 ## Suppression
 
-- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`, `enactment`, `circuit_breaker`, `null_cycle`, `liveness_gap`. Per-trade suppressed.
+- **Paper:** `routine_summary`, `discovery_summary`, `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`, `enactment`, `circuit_breaker`, `halt_active`, `null_cycle`, `liveness_gap`. Per-trade suppressed.
 - **Mainnet:** all of paper + `trade_placed`, `preflight_failed`, `persist_conflict`, `phase_missed`.
-- **Suppression-exempt (always send if creds present):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `persist_conflict`, `enactment`. The first four break silent-failure modes; `enactment` makes every autonomous code change (and how to veto it) always visible.
+- **Suppression-exempt (always send if creds present):** `null_cycle`, `liveness_gap`, `circuit_breaker`, `halt_active`, `persist_conflict`, `enactment`. The first five break silent-failure modes (`halt_active` keeps an *ongoing* halt loud — one alert per day until a human clears it); `enactment` makes every autonomous code change (and how to veto it) always visible.
 - Missing creds in paper → silent skip. Missing creds in mainnet → handled by `trade` as `preflight_failed`.
 
 ## Steps
 
 1. Resolve kinds to send (mode + caller).
-2. **Date-based dedupe** (once-per-UTC-date kinds: `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`). Grep trade-log for prior `notification kind:"<this_kind>"` with `date:<today UTC>` → skip if present. (`discovery_summary` is per-phase and must NOT use this dedupe; `*_failed` suffixes are distinct kinds so retries aren't blocked.)
+2. **Date-based dedupe** (once-per-UTC-date kinds: `daily_summary`, `weekly_recap`, `strategy_evolution`, `proposal`, `vision_weekly`, `halt_active`). Grep trade-log for prior `notification kind:"<this_kind>"` with `date:<today UTC>` → skip if present. (`discovery_summary` is per-phase and must NOT use this dedupe; `*_failed` suffixes are distinct kinds so retries aren't blocked.)
 3. **Compose payload.** Load only the template file matching the `kind` (see § Templates). Substitute placeholders; sanitize external content (`<market>`, `<reason>`, leads) for unbalanced `*` `_` `` ` ``. Never include secrets, wallet addrs, raw env vars, token-bearing URLs.
 4. **Pick transport by size.** Telegram `sendMessage` caps `text` at 4096 chars (`printf '%s' "$payload" | wc -c`).
    - ≤4096 → `sendMessage` (4a).
@@ -69,6 +69,7 @@ Plain HTTPS `curl` to `https://api.telegram.org/bot<TOKEN>/<method>`. No MCP. `T
 | `enactment`         | enact status transition (Sun) | [templates/enactment.md](templates/enactment.md)                                        |
 | `trade_placed`      | mainnet only, per fill        | [templates/trade_placed.md](templates/trade_placed.md)                                  |
 | `circuit_breaker`   | any breaker trip              | [templates/circuit_breaker.md](templates/circuit_breaker.md)                            |
+| `halt_active`       | daily while a halt is active  | [templates/halt_active.md](templates/halt_active.md)                                    |
 | `preflight_failed`  | trade preflight gate          | [templates/preflight_failed.md](templates/preflight_failed.md)                          |
 | `persist_conflict`  | push rejected after retry     | [templates/persist_conflict.md](templates/persist_conflict.md)                          |
 | `phase_missed`      | per missed phase              | [templates/phase_missed.md](templates/phase_missed.md)                                  |

@@ -30,7 +30,7 @@ Enter through one routine. Load skills only when a step says to. Don't improvise
 | 22:00    | daily-close      | recap + reflect + envision (Sun: +weekly +groom +enact); `recalibrate.sweep` |
 | 0 */4    | heartbeat        | liveness probe; emits `liveness_gap` if scheduler skipped                    |
 
-Circuit breaker (`skills/circuit-breaker.evaluate()`) at checkpoints inside every routine; `halt(reason)` for non-loss. Missed-phase: next routine greps trade-log for prior phase's `phase_completed`. Liveness gap: `boot` compares `now` vs `cycle-index.last_completed_at`; > 9h emits `liveness_gap` + notify.
+Circuit breaker (`skills/circuit-breaker.evaluate()`) at checkpoints inside every routine; `halt(reason)` for non-loss. **Active halt = capital actions stop, learning does not**: routines still run their read-only `recalibrate` step (sweep/CLV) before persisting, and `boot` re-notifies `halt_active` once per UTC day until a human clears it. Missed-phase: next routine greps trade-log for prior phase's `phase_completed`. Liveness gap: `boot` compares `now` vs `cycle-index.last_completed_at`; > 9h emits `liveness_gap` + notify.
 
 ## Action commitment (HARD floors; miss → `null_cycle`, still push)
 

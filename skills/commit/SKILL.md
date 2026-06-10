@@ -53,6 +53,7 @@ Adding a scope is itself an `agent` or `skill` change — document it here in th
 | heartbeat (liveness gap)         | `fix(cycle): heartbeat liveness_gap <N>h [cycle <cid>]`       |
 | any — floor missed               | `fix(cycle): null_cycle <reason> [cycle <cid>]`               |
 | any — breaker tripped            | `fix(halt): <reason> [cycle <cid>]`                           |
+| any — no-op under active halt    | `chore(cycle): <phase> halted [cycle <cid>]`                  |
 | mainnet pre-submit (rare)        | `feat(decision): pre-submit <idempotency_key> [cycle <cid>]`  |
 | enact self-implementation (Sun)  | `feat(agent): enact <slug> [cycle <cid>]`                     |
 | enact auto-rollback (Sun)        | `revert(agent): auto-rollback <slug> [cycle <cid>]`           |

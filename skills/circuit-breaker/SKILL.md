@@ -88,7 +88,9 @@ Any fire → routine stops phase work, calls `notify` + `persist` to commit + pu
 
 ## Recovery (human-only)
 
-Agent never clears. Human edits `halts.json`:
+Agent never clears. While the halt is active: `boot` re-notifies `halt_active` once per UTC date
+(date-deduped, suppression-exempt) — an ongoing halt is never silent — and routines still run their
+read-only `recalibrate` step (a halt stops capital actions, not calibration). Human edits `halts.json`:
 ```bash
 jq '.active=false|.reason=null|.triggered_at=null|.cycle_id=null' \
    state/halts.json > state/halts.json.tmp && mv state/halts.json.tmp state/halts.json

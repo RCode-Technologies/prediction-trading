@@ -15,7 +15,7 @@ Crystallize day's signals. Recap, reflect, daily Telegram. Sundays: also weekly.
 ## Steps
 
 1. `boot`
-2. `circuit-breaker.evaluate()` — cp1 (v3: 24h halt **+ drawdown-from-peak governors + heat breach**). Halted/freeze → daily summary if due, jump to 11.
+2. `circuit-breaker.evaluate()` — cp1 (v3: 24h halt **+ drawdown-from-peak governors + heat breach**). Halted/freeze → run step 7b (`recalibrate.sweep()` — read-only scoring; a halt blocks capital actions, not calibration) + daily summary if due (template carries the mandatory halt banner), then jump to 11.
 3. **Phase-miss check.** Today's `phase_completed` for `research_window` + `trade_window`. Emit `phase_missed` per gap.
 4. `markets` — final fresh-price snapshot on open positions (CLOB).
 5. `circuit-breaker.evaluate()` — cp2 (post-marks).

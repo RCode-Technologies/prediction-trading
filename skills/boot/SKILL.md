@@ -26,7 +26,13 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
    - `active && now >= expires_at` → stale. Append `stale_lock_recovered` (this + prior cycle_id).
    - Acquire: atomic write `{schema_version:1, active:true, cycle_id, started_at:<now>, expires_at:<now+55m>}`.
 
-5. **Halts.** `halts.json.active==true` → return halt flag; no phase work.
+5. **Halts.** `halts.json.active==true` → compute `halt_age_days = floor((now − triggered_at)/86400)`,
+   then call `notify` kind `halt_active` (suppression-exempt, date-deduped once per UTC date — see
+   `skills/notify`) with `{reason, triggered_at, halt_age_days}`. An active halt must re-alert the human
+   **every day** until cleared, not only at trip time (the 2026-05-29 → 06-10 nav halt went silent for
+   12 days after its single trip alert). Return halt flag. **No capital/phase work** — but read-only
+   calibration still runs: each routine's halt branch jumps to its `recalibrate` step (`sweep`/`snap_clv`),
+   then `phase_completed` → `persist`. A halt stops capital actions, never the learning loop or the push.
 
 5b. **Protected-core integrity audit.** For each path in `config/autonomy.md` § Protected core:
    `git log -1 --format=%ae -- <path>`. Empty (no history yet) → skip. Author email ==
@@ -37,8 +43,10 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
 
 5c. **NAV reconciliation invariant (v3, AC #13).** Recompute book NAV from `state/portfolio.json`:
    `book_nav = cash_usdc + Σ(shares × mark_liquidation)`. Reconstruct **expected cash** from trade-log
-   history: `starting_capital + Σ(realized P&L on paper_fill/mainnet_fill SELL) − Σ(BUY notional_usdc + fee_usdc)
-   + Σ(deposit) − Σ(withdrawal)`. Two checks, both fail-closed:
+   history: `starting_capital − Σ(BUY notional_usdc + fee_usdc) + Σ(SELL notional_usdc − fee_usdc)
+   + Σ(deposit) − Σ(withdrawal)`. SELL `notional_usdc` is the **full proceeds** (`shares × fill_price`),
+   NOT realized P&L — proceeds are what actually lands in cash. (Verified 2026-06-10:
+   `10000 − 227.20 − 276.28 + 243.13 = 9739.65 == cash_usdc`.) Two checks, both fail-closed:
    - `|expected_cash − cash_usdc| > 0.01` (absolute, not relative) → `circuit-breaker.halt("nav_reconciliation_failed", expected_cash, cash_usdc, delta)`.
    - A position whose `shares` moved with **no** corresponding `paper_fill`/`mainnet_fill` in the trade-log
      (cross-check current `shares` against Σ of fills for that `token_id`) → same halt.

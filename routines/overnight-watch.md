@@ -14,11 +14,11 @@ Asia active, US asleep. Light monitor: marks, NAV, breaker, **exit + governor ch
 ## Steps
 
 1. `boot`
-2. `circuit-breaker.evaluate()` — cp1 (v3: 24h halt **+ drawdown-from-peak governors + heat breach**). Halted/freeze → jump to 10; probation/heat-breach is non-halting (carried into sizing).
-3. **No-position fast path.** `portfolio.positions == []` and `observation_only==true` → skip CLOB marks + opportunistic + exit check. Run cp2 with cash-only NAV; halted → jump to 10. Else send one-line `notify routine_summary`, jump to step 9 (recalibrate still runs).
+2. `circuit-breaker.evaluate()` — cp1 (v3: 24h halt **+ drawdown-from-peak governors + heat breach**). Halted/freeze → jump to 9 (read-only `recalibrate.sweep()` still runs — a halt blocks capital actions, not calibration), then 10; probation/heat-breach is non-halting (carried into sizing).
+3. **No-position fast path.** `portfolio.positions == []` and `observation_only==true` → skip CLOB marks + opportunistic + exit check. Run cp2 with cash-only NAV; halted → jump to 9 (recalibrate still runs), then 10. Else send one-line `notify routine_summary`, jump to step 9 (recalibrate still runs).
 4. `markets` — refresh CLOB midpoints on open positions only.
 5. `risk.nav()` + `journal.nav_snapshot`.
-6. `circuit-breaker.evaluate()` — cp2 (post-marks; governors + heat re-checked on fresh NAV). Halted → jump to 10.
+6. `circuit-breaker.evaluate()` — cp2 (post-marks; governors + heat re-checked on fresh NAV). Halted → jump to 9 (recalibrate still runs), then 10.
 6b. **Disconfirmation-stop exit check (v3; `config/guardrails.md` § Disconfirmation stop).** For each open position: `risk.pnl_from_entry(position)` and scan its `disconfirming_signals[]` against fresh news/marks. `pnl_pct <= -0.25` (non-stale mark) **or** a named disconfirming event materialised → load `skills/sizing` with `learning_intent:"risk_reduction"` + the position + `stop_reason` → SELL via `skills/trade` (reducing/closing `paper_fill` at `best_bid`). Exits are exempt from any active freeze/probation. No trip → continue (no decision).
 7. **Opportunistic gate** (all required): watchlist ≤24h fresh, candidate moved ≥200 bps favorable, `liquidityNum >= 10000`, mode allows, **not frozen / not heat-breached** (governor from cp2). Yes → `sizing` (assigns `sizing_tier` from the ladder; an unproven bucket caps ≤ Tier 1) → `trade` for that one candidate.
 8. `circuit-breaker.evaluate()` — cp3, only if step 6b or step 7 fired (post-fill).
