@@ -77,7 +77,7 @@ Synchronous from `skills/journal` step 4. Must be cheap; must not block the appe
 
 1. Filter event_type to `{forecast, paper_fill, mainnet_fill}`. Else no-op.
 2. **`forecast`** (MUST append — this is the open-ledger contract; a missed append is the bug `sweep()` step 0 self-checks): append one line to `state/forecasts.open.jsonl` (`resolved:false`) with `market_p_t0` seeded from the event's `market_p`, `edge_source` copied (else `"none"`), and `clv_snaps:[]`. Skip only if a line with this `forecast_id` already exists (idempotent re-tick). Increment `scorecard.<intent>.unresolved_n`. Bump `updated_at`.
-3. **`paper_fill` / `mainnet_fill`**: find parent forecast by `forecast_id` (or `idempotency_key`). Annotate the open-ledger entry with `fill_price`, `fill_shares`, `fill_ts`. Portfolio MTM = `risk.nav()` responsibility, not recalibrate's.
+3. **`paper_fill` / `mainnet_fill`**: find parent forecast by `forecast_id` (or `idempotency_key`). Annotate the open-ledger entry with `fill_price`, `fill_shares`, `fill_ts`. Portfolio MTM = `risk.nav()` responsibility, not recalibrate's. A fill with `forecast_id:null` (human restatement — see `skills/journal`) annotates nothing: portfolio-only, excluded from calibration; emit the step-4 `recalibration` event with `status:"skipped_no_forecast_id"`.
 4. Emit `recalibration` via `journal` (won't loop — `tick` filters event_type):
    ```json
    {"event_type":"recalibration","trigger":"<event_type>","forecast_id":"<id>","status":"ok","scorecard_path":"state/scorecard.json"}
@@ -127,6 +127,14 @@ Source-budget aware. Spends Gamma only when open forecasts have passed `close_ti
    - Explore slice (`learning_intent=="explore"`): same formulas with `your_p = market_p + ε`.
    - **CLV** (`clv_mean`, `clv_hit_rate`, `clv_n` per intent + `by_edge_source[]`) was already refreshed by `snap_clv()` at step 1 — do not recompute, just carry it through.
 7. **Recompute calibration** per bucket × intent: `resolved_n`, `hit_rate = mean(outcome)`, `brier`, `adjustment` (per `strategy/current.md` convergent update law). `status = collect` if `n<10`, else `active`.
+
+7b. **Historical prior (cold start).** For any exploit bucket with `resolved_n == 0`: if
+   `tools/bootstrap-calibration.json` exists, copy the matching `price_bin` row into the bucket as
+   `historical_prior: {n, realized_freq, mean_forecast_p, source:"historical_bootstrap"}`.
+   **Reference-only**: it never increments `resolved_n`, never sets `adjustment`, never flips `status` —
+   it gives `reflect`/`sizing` a base-rate anchor from 538 resolved Polymarket markets instead of a void
+   while live data accumulates. Drop the field once the bucket's live `resolved_n >= 10` (live data
+   supersedes the prior). Zero sources — local file read.
 8. Per-provider / per-feature_tag slices: filter by exact `source_providers[]` / `feature_tags[]`. Compute Brier vs market baseline.
 9. Atomic write `state/scorecard.json`, `state/calibration.json`, `state/forecasts.open.jsonl` via `.tmp` + `mv`.
 10. Emit `recalibration` via `journal`:

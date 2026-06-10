@@ -19,7 +19,9 @@ Only skill that *appends* to `state/trade-log.jsonl`. Append-only here. The sole
 
 Caller fields merged in.
 
-**Trade events also need:** `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `price`, `shares`, `notional_usdc`, `fee_usdc`, `idempotency_key`, `order_id` (null in paper).
+**Trade events also need:** `market_id`, `condition_id`, `token_id`, `outcome`, `side`, `price`, `shares`, `notional_usdc`, `fee_usdc`, `idempotency_key`, `order_id` (null in paper). **SELL fills additionally require non-null `realized_pnl_usdc` = `shares × (fill_price − avg_entry_price)`** — recap/reflect read it from JSONL; a null breaks exit-P&L attribution (the 2026-05-29 Iran exit logged null and had to be reconstructed).
+
+**Human restatement fills** (capital-integrity corrections booked interactively, e.g. the 2026-06-10 baseline-injection restatement) carry `authorized_by:"<handle>_interactive_recovery"` and may have `forecast_id:null`. They are portfolio-ledger events only — excluded from calibration (`recalibrate.tick` skips fills without a `forecast_id`).
 
 **Forecast events also need:** `strategy_version`, `forecast_id`, `thesis_id`, `evidence_refs`, `feature_tags`, `source_providers`, `prior_p`, `raw_your_p`, `your_p`, `market_p`, `confidence`, `calibration_bucket`, `close_time`, `resolution_criteria`, `disconfirming_signals`, **`learning_intent ∈ {"explore","exploit","risk_reduction"}`**.
 
@@ -45,7 +47,7 @@ Never bury attribution in markdown — reflection reads JSONL.
 ## Steps
 
 1. Fill envelope. `event_id` seq = count of this event_type for `cycle_id` (start 1).
-2. Validate: `printf '%s\n' "$json" | jq empty`. Reject malformed. For `forecast`: assert `.learning_intent ∈ {"explore","exploit","risk_reduction"}`; else reject (caller bug).
+2. Validate: `printf '%s\n' "$json" | jq empty`. Reject malformed. For `forecast` **and `decision`**: assert `.learning_intent ∈ {"explore","exploit","risk_reduction"}`; else reject (caller bug). For `paper_fill`/`mainnet_fill` with `side:"SELL"`: assert `realized_pnl_usdc` present and non-null; else reject.
 3. Append via `>>`. POSIX-atomic. Never partial writes.
 4. **Post-append hook.** event_type ∈ `{forecast, paper_fill, mainnet_fill}` → invoke `skills/recalibrate.tick(event)` synchronously. (Decisions don't trigger; the matching fill will.) Hook failure MUST NOT roll back the append — log a `recalibration status:"failed" reason:"<short>"` and continue.
 5. Markdown notes (research/candidates/watchlists/recaps): write via temp + `mv`. JSONL event carries path + metadata only.

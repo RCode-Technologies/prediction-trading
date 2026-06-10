@@ -101,7 +101,17 @@ A `risk_reduction` candidate is a *held position* flagged by an exit check (a ro
 
 10. **Tier cap + min size.** Reduce shares until both per-tier formulas pass (`existing_token_risk + new_order_notional + fees <= tier_cap_pct * NAV` AND `new_order_notional + fees <= cash_usdc`). **Tier 1 min:** `new_order_notional < 0.005 * NAV` (below the 0.5% Lean floor) → `decision reason:"below_min_size"`, shares 0, stop. `shares==0` for any other reason → `decision reason:"below_min_size"`, stop. **`new_order_notional` may never exceed `0.10 * NAV` (hard ceiling) under any path.**
 
-11. **Correlation guard.** Same election/match/regulatory event → one 5% bucket aggregate. Uncertain → reject.
+11. **Correlation guard.** Assign `risk_bucket_id` deterministically, first match wins:
+    1. Open position on the same `market_id` **or** same Gamma event slug → that bucket.
+    2. Same underlying real-world event (same election + jurisdiction, same match, same regulatory
+       decision, same named geopolitical event), even across different markets → one bucket, named
+       `<topic>-<entity>-<YYYYMM>` (e.g. `election-us-senate-202611`).
+    3. Mechanically linked (one outcome implies/excludes the other, or both resolve from the same
+       source/announcement) → same bucket.
+    4. None of the above → new bucket.
+    Test for (4): state in one sentence why this candidate resolves independently of **every** open
+    bucket. Can't → "uncertain" → reject (`decision reason:"correlation_uncertain"`, `shares:0`).
+    Related markets share one tier cap + one heat bucket (5% aggregate).
 
 12. **`idempotency_key` = `<mode>:<market_id>:<token_id>:<side>:<price>:<shares>:<strategy_version>`.**
 
