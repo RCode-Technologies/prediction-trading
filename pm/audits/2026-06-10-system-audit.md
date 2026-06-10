@@ -3,6 +3,26 @@
 Human-directed session (theo6890 via Claude, interactive). Trigger: system halted
 `nav_reconciliation_failed` on 2026-05-29 16:11Z and stayed dead 12 days until manually noticed.
 
+## Addendum — 2026-06-10 08:12Z confabulated `protected_core_violation` halt
+
+Hours after the restart, the 08:12Z heartbeat halted on `protected_core_violation` naming
+`config/autonomy.md, config/guardrails.md, skills/enact, skills/risk`, citing "genesis commit
+e89b223". **This was a fabrication.** Ground truth (`git log -1 --format=%ae` per path): all four —
+and all nine protected-core paths — are last-authored by `mail@rcode.tech` (human). `e89b223` is not
+a genesis commit; it is an unrelated 2026-06-04 heartbeat that touches none of those files. The
+deterministic audit prints `PROTECTED_CORE_VIOLATIONS:[ ]` (empty). No violation existed.
+
+Why it happened: boot 5b was prose an LLM *interprets* ("author email == agent → halt"), not a script
+it *runs*. The heartbeat cycle reasoned narratively about authorship, confused genesis/oldest with
+newest, invented a hash, and tripped the breaker. The earlier `nav_reconciliation_failed` halt had
+masked this latent fragility (boot returned at step 5 before reaching 5b); clearing it exposed it.
+
+Fix: boot 5b rewritten as a copy-pasteable deterministic snippet whose printed `PROTECTED_CORE_VIOLATIONS`
+list is the *only* admissible evidence, plus HARD anti-confabulation rules (newest-author-only; never
+reason from genesis; never halt from memory or a guessed hash). False halt cleared (verified empty).
+Lesson generalizes: any LLM-executed gate that can halt capital ops must emit a mechanical verdict, not
+invite narrative judgement.
+
 ## Recovery (pushed as f2e928d)
 
 - Root cause: human commit 530f85f (2026-05-27 "paper baseline reset to $10k") injected
