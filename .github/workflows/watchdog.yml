@@ -1,0 +1,80 @@
+# External dead-man's switch (human-owned; the agent never edits .github/).
+#
+# Closes the three failure modes no in-repo mechanism can catch:
+#   1. Local scheduler fully dead  -> no commits at all, so no in-cycle alert can fire.
+#   2. Halt outliving human memory -> halts.json.active for >24h (the 2026-05-29 -> 06-10 outage).
+#   3. Telegram creds rotted       -> falls back to a GitHub issue.
+#
+# Runs on GitHub's scheduler, independent of the local machine.
+# Optional repo secrets (Settings > Secrets > Actions): TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID.
+# Without them, alerts land as GitHub issues (one per day, commented on repeat).
+
+name: watchdog
+on:
+  schedule:
+    - cron: "30 */6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Evaluate commit liveness + halt age
+        id: check
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          set -euo pipefail
+          now=$(date -u +%s)
+          last_commit=$(git log -1 --format=%ct)
+          age_h=$(( (now - last_commit) / 3600 ))
+          halted=$(jq -r '.active' state/halts.json)
+          reason=$(jq -r '.reason // "n/a"' state/halts.json)
+          triggered=$(jq -r '.triggered_at // empty' state/halts.json)
+          halt_age_h=0
+          if [ "$halted" = "true" ] && [ -n "$triggered" ]; then
+            t=$(date -u -d "$triggered" +%s)
+            halt_age_h=$(( (now - t) / 3600 ))
+          fi
+          msg=""
+          if [ "$age_h" -ge 10 ]; then
+            msg="⚠️ prediction-trading: no commit for ${age_h}h — scheduler may be dead (cycles push every ≤6h when alive)."
+          fi
+          if [ "$halted" = "true" ] && [ "$halt_age_h" -ge 24 ]; then
+            msg="${msg:+$msg }🛑 HALT active for ${halt_age_h}h (reason: ${reason}, since ${triggered}) — human resume required: clear state/halts.json."
+          fi
+          {
+            echo "msg=$msg"
+            echo "tg=$([ -n "${TG_TOKEN}" ] && echo yes || echo no)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Alert via Telegram
+        if: steps.check.outputs.msg != '' && steps.check.outputs.tg == 'yes'
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          MSG: ${{ steps.check.outputs.msg }}
+        run: |
+          curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${MSG}" >/dev/null
+
+      - name: Alert via GitHub issue (fallback)
+        if: steps.check.outputs.msg != '' && steps.check.outputs.tg != 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MSG: ${{ steps.check.outputs.msg }}
+        run: |
+          title="watchdog alert $(date -u +%F)"
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$MSG"
+          else
+            gh issue create --title "$title" --body "$MSG"
+          fi
