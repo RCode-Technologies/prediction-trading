@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-05-28T22:08:00Z",
+  "updated_at": "2026-06-10T22:13:54Z",
   "exploit": {
     "50-60": {
       "resolved_n": 0,
@@ -27,6 +27,27 @@
       "resolved_n": 0,
       "brier": null,
       "hit_rate": null,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "10-20": {
+      "resolved_n": 1,
+      "brier": 0.0324,
+      "hit_rate": 0.0,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "20-30": {
+      "resolved_n": 1,
+      "brier": 0.0484,
+      "hit_rate": 0.0,
+      "adjustment": 0.0,
+      "status": "collect"
+    },
+    "40-50": {
+      "resolved_n": 2,
+      "brier": 0.2025,
+      "hit_rate": 0.0,
       "adjustment": 0.0,
       "status": "collect"
     }
