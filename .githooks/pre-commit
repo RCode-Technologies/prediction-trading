@@ -9,10 +9,18 @@
 # freeze). Prose ("you MAY NOT halt without exit-3") cannot bind an LLM cycle. This hook turns
 # that rule into mechanism: if a commit stages state/halts.json as an ACTIVE
 # protected_core_violation, the committed audit (skills/boot/protected-core-audit.sh) MUST
-# exit 3 (a genuine violation) or the commit is REJECTED.
+# report a genuine violation or the commit is REJECTED.
 #
-# Genuine violations (audit exits 3), halt CLEARS (active:false), and every other halt reason
-# all pass through untouched. This gates exactly one thing: a false protected_core_violation.
+# IDENTITY GOTCHA (why `env -u` below): `git commit` injects the *author's* GIT_AUTHOR_EMAIL into
+# this hook's environment, and the audit derives AGENT_ID from GIT_AUTHOR_EMAIL. Inheriting it
+# would make a human-authored commit (GIT_AUTHOR_EMAIL=mail@rcode.tech) flag every human-authored
+# rail and exit 3 — inverting the gate. We strip the author identity so the audit always evaluates
+# against the canonical agent identity (its default, agent@prediction-trading.local): "is any rail
+# genuinely AGENT-authored?" — independent of who is making this commit.
+#
+# Genuine violations (audit exits 3 under the agent identity), halt CLEARS (active:false), and every
+# other halt reason all pass through untouched. This gates exactly one thing: a false
+# protected_core_violation.
 set -uo pipefail
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
@@ -36,9 +44,11 @@ if [ "$active" != "true" ] || [ "$reason" != "protected_core_violation" ]; then
   exit 0
 fi
 
-audit_out="$(bash "$root/skills/boot/protected-core-audit.sh" 2>&1)"; audit_code=$?
+# Evaluate the audit against the AGENT identity, not this commit's author (see IDENTITY GOTCHA).
+audit_out="$(env -u GIT_AUTHOR_EMAIL -u GIT_COMMITTER_EMAIL \
+              bash "$root/skills/boot/protected-core-audit.sh" 2>&1)"; audit_code=$?
 if [ "$audit_code" = "3" ]; then
-  exit 0   # genuine violation — the halt is legitimate, allow it through
+  exit 0   # genuine agent-authored rail — the halt is legitimate, allow it through
 fi
 
 cat >&2 <<EOF
@@ -46,16 +56,16 @@ cat >&2 <<EOF
   ✋ COMMIT REJECTED — confabulated protected_core_violation
 
   You staged state/halts.json as an ACTIVE protected_core_violation, but the
-  mechanical audit does NOT agree:
+  mechanical audit (evaluated against the agent identity) does NOT agree:
 
       skills/boot/protected-core-audit.sh  ->  exit ${audit_code}
       ${audit_out}
 
   Per boot 5b (HARD): a protected_core_violation halt is FORBIDDEN unless that
-  script exits 3 THIS cycle. It exited ${audit_code} = clean. This is the same
-  hallucination that froze the paper trader on 2026-06-10 and 2026-06-12. Do NOT
-  halt. The script — newest-commit author per path; genesis AND "which files the
-  last fix touched" are BOTH irrelevant — is the only authority.
+  script reports a genuine violation. It did not. This is the same hallucination
+  that froze the paper trader on 2026-06-10 and 2026-06-12. Do NOT halt. The
+  script — newest-commit author per path; genesis AND "which files the last fix
+  touched" are BOTH irrelevant — is the only authority.
 
   Recover and continue the cycle WITHOUT halting:
       jq '.active=false|.reason=null|.triggered_at=null|.cycle_id=null' \\
@@ -63,7 +73,7 @@ cat >&2 <<EOF
       git add state/halts.json
 
   (A genuinely agent-authored rail makes the audit exit 3 and this commit passes.
-  It exits ${audit_code}. Fix the audit if it is wrong — never bypass this gate.)
+  Fix the audit if it is wrong — never bypass this gate.)
 
 EOF
 exit 1
