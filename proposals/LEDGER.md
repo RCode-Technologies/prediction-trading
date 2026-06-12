@@ -11,4 +11,4 @@ direct the agent. No inbound channel exists.
 
 | id | title | lens | bucket | conviction | status | updated | note |
 | -- | ----- | ---- | ------ | ---------- | ------ | ------- | ---- |
-| *(none yet — first row lands on the next `daily-close` envision pass)* | | | | | | | |
+| 2026-06-12-trim-redundant-heartbeats | Trim the two heartbeat fires that overlap richer routines | efficiency / cost | human_application | medium | surfaced | 2026-06-12 | heartbeat `0 */4` double-fires at 04:00 (overnight-watch) + 12:00 (research-window); move to `0 0,8,16,20` → −2 paid invocations/day, zero liveness loss. Manual-cron UI + AGENTS.md mirror = needs human. |
