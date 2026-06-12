@@ -2,6 +2,8 @@
 
 Human-owned. Reflection cannot edit this file; recommendations surface via daily summary. (v3 cost-honest edits supervisor-authorized 2026-05-29 — see pm/prds/v3-edge-and-learning.md.)
 
+> **Protected-core rail (HARD) — human-authored only.** Enforced mechanically by `config/autonomy.md` § Enforcement (intent gate · write gate · `boot` audit · `.githooks/pre-commit`). A `protected_core_violation` is valid only when `skills/boot/protected-core-audit.sh` exits 3 — never from authorship reasoning or "which files the last fix touched."
+
 ## Cost-honest prices (v3)
 
 You **buy at the ask, sell at the bid** — midpoint is never the trade or mark price. Sizing prices entries at `best_ask` (`new_order_notional = shares * best_ask`); NAV marks longs at `best_bid` (liquidation value). The 5% cap and the circuit breaker both operate on **liquidation NAV**. Midpoint is reference/display only.

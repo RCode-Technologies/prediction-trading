@@ -57,7 +57,24 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
    (`!= $AGENT_ID`, e.g. `mail@rcode.tech`) is expected and clean. The path list lives in the script
    (mirror of `config/autonomy.md` § Protected core — keep those two in sync, nowhere else).
 
-   This is the backstop behind `enact`'s intent gate and `persist`'s write gate (defense in depth).
+   **2026-06-12 — the second confabulation, and the two rules it added.** One content cycle *after*
+   `d507025` made 5b a script, a cycle confabulated again with a NEW story: *"`d507025` only cleansed
+   `skills/boot`, so the other 4 rails are still agent-authored."* FALSE — and it re-froze the trader.
+   The script is **per-path**: a rail is clean when ITS OWN newest commit is human, no matter which
+   files any later fix did or didn't touch. *"Which rails the last fix touched"* is exactly as
+   irrelevant as genesis — both are authorship *reasoning*, which is what the script exists to replace.
+   Two consequences are now in force:
+   - **You may NOT hand-author a `protected_core_violation` alert.** The only legal message for this
+     reason is the mechanical `notify circuit_breaker` fired by `circuit-breaker.halt()` *after* a real
+     exit-3. A free-form "N rails still last-authored by the agent…" Telegram message — citing a hash,
+     naming a file subset, narrating which commit "cleansed" what — IS the bug, not a report of one.
+   - **A commit-time gate now enforces this even if you ignore 5b:** `.githooks/pre-commit` rejects any
+     commit that stages an active `protected_core_violation` in `state/halts.json` unless the audit
+     exits 3. A narrated halt can no longer reach the brain — it fails loudly at commit, not silently
+     for days.
+
+   This is the backstop behind `enact`'s intent gate and `persist`'s write gate; `.githooks/pre-commit`
+   turns "no halt without exit-3" from prose into mechanism (defense in depth).
 
 5c. **NAV reconciliation invariant (v3, AC #13).** Recompute book NAV from `state/portfolio.json`:
    `book_nav = cash_usdc + Σ(shares × mark_liquidation)`. Reconstruct **expected cash** from trade-log

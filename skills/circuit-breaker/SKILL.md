@@ -86,6 +86,10 @@ Any fire → routine stops phase work, calls `notify` + `persist` to commit + pu
 3. `notify` kind `circuit_breaker` (paper + mainnet).
 4. Return `{halted:true, reason}`. Routine persists with `fix(halt): <reason> [cycle <cid>]`.
 
+**`protected_core_violation` is gated at commit time.** `.githooks/pre-commit` rejects a commit that
+stages this halt in `halts.json` unless `skills/boot/protected-core-audit.sh` exits 3. Only `boot` 5b
+(on a real exit-3) may originate it; never hand-write the halt or its alert from authorship reasoning.
+
 ## Recovery (human-only)
 
 Agent never clears. While the halt is active: `boot` re-notifies `halt_active` once per UTC date

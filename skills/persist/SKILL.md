@@ -47,6 +47,15 @@ JSON: `jq '<expr>' f.json > f.json.tmp && mv f.json.tmp f.json`. JSONL: `>>` onl
    `circuit-breaker.halt("protected_core_violation", paths)`. The cycle then persists the halt normally
    (`fix(halt): protected_core_violation`) — the discarded paths are not in the commit.
 
+   *Mechanical floor:* `.githooks/pre-commit` gates `protected_core_violation` on the `boot` audit
+   exiting 3, so a *narrated* (audit-clean) halt cannot be committed — the recurring confabulation that
+   froze the trader on 2026-06-10/06-12. Note the interaction with this write-gate: 1b's protection is
+   the **reset** — it neutralizes the rogue edit *before* it can be committed, so the post-reset audit
+   reads clean. If 1b's own halt commit is therefore rejected by the gate, that rejection still
+   *confirms* the edit never reached the brain; surface it via `notify` + the failed-cycle liveness
+   alert rather than bypassing the gate. `protected_core_violation` in `halts.json` is, by construction,
+   the boot audit's exclusive verdict.
+
 2. **Null-cycle audit.** Count event types this cycle (`cycle_id == <cid>`) vs floor in `strategy/current.md` § Decision rules (also mirrored in AGENTS.md). Floor missed → append `null_cycle` + notify (suppression-exempt). Still commits + pushes — silent failure is the enemy. If the floor was missed **because a halt blocked phase work** (`halts.active` this cycle), append the event with `reason:"halted"` instead of `"floor_missed"` and **skip its notify only** (boot's daily `halt_active` alert already covers the human) — the miss stays auditable in the log instead of vanishing.
    ```json
    {"event_type":"null_cycle","reason":"floor_missed|halted","required":{...},"actual":{...},"phase":"<phase>"}

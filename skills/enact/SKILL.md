@@ -7,6 +7,8 @@ outputs: one standalone revertible commit + enactment event + enactment notify; 
 
 # Enact
 
+> **Protected-core rail (HARD) — human-authored only.** The agent runs this skill but never edits it. The verdict is mechanical, not narrated: `config/autonomy.md` § Enforcement (intent gate · write gate · `boot` audit · `.githooks/pre-commit`). A `protected_core_violation` is valid only when `skills/boot/protected-core-audit.sh` exits 3 — never from authorship reasoning, a recalled hash, or which files the last fix touched.
+
 Sundays only, from `daily-close` after the deep `envision` pass. This is where the agent writes its
 own code — bounded hard by `config/autonomy.md`. **≤1 enactment per week.**
 

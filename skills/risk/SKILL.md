@@ -7,6 +7,8 @@ outputs: returned values; optional in-memory recommendation buffer for notify
 
 # Risk
 
+> **Protected-core rail (HARD) — human-authored only.** The agent runs this skill but never edits it. The verdict is mechanical, not narrated: `config/autonomy.md` § Enforcement (intent gate · write gate · `boot` audit · `.githooks/pre-commit`). A `protected_core_violation` is valid only when `skills/boot/protected-core-audit.sh` exits 3 — never from authorship reasoning, a recalled hash, or which files the last fix touched.
+
 Stateless. Callers: `circuit-breaker`, `sizing`, `reflect`.
 
 ## Helpers

@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# pre-commit — mechanical backstop against a CONFABULATED protected_core_violation halt.
+#
+# WHY THIS EXISTS: boot 5b was turned into a committed script (d507025) precisely so the
+# protected-core verdict could not be *narrated*. It did not hold. On 2026-06-12, ONE content
+# cycle after that fix, a cycle ignored the script's exit 0, invented a fresh story ("the fix
+# only cleansed skills/boot, so the other rails are still agent-authored"), wrote
+# state/halts.json, and pushed — re-halting the paper trader (same class as the 2026-06-10
+# freeze). Prose ("you MAY NOT halt without exit-3") cannot bind an LLM cycle. This hook turns
+# that rule into mechanism: if a commit stages state/halts.json as an ACTIVE
+# protected_core_violation, the committed audit (skills/boot/protected-core-audit.sh) MUST
+# exit 3 (a genuine violation) or the commit is REJECTED.
+#
+# Genuine violations (audit exits 3), halt CLEARS (active:false), and every other halt reason
+# all pass through untouched. This gates exactly one thing: a false protected_core_violation.
+set -uo pipefail
+
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+halts="state/halts.json"
+
+# Engage only when THIS commit stages state/halts.json.
+git diff --cached --name-only | grep -qx "$halts" || exit 0
+
+# Read the STAGED (index) content — that is what would be committed.
+staged="$(git show ":$halts" 2>/dev/null)" || exit 0
+command -v jq >/dev/null 2>&1 || {
+  echo "pre-commit[protected-core]: jq unavailable — skipping (boot 5b remains the backstop)" >&2
+  exit 0
+}
+
+active="$(printf '%s' "$staged" | jq -r '.active // false' 2>/dev/null)"
+reason="$(printf '%s' "$staged" | jq -r '.reason // ""' 2>/dev/null)"
+
+# Gate ONLY an active protected_core_violation. Anything else commits normally.
+if [ "$active" != "true" ] || [ "$reason" != "protected_core_violation" ]; then
+  exit 0
+fi
+
+audit_out="$(bash "$root/skills/boot/protected-core-audit.sh" 2>&1)"; audit_code=$?
+if [ "$audit_code" = "3" ]; then
+  exit 0   # genuine violation — the halt is legitimate, allow it through
+fi
+
+cat >&2 <<EOF
+
+  ✋ COMMIT REJECTED — confabulated protected_core_violation
+
+  You staged state/halts.json as an ACTIVE protected_core_violation, but the
+  mechanical audit does NOT agree:
+
+      skills/boot/protected-core-audit.sh  ->  exit ${audit_code}
+      ${audit_out}
+
+  Per boot 5b (HARD): a protected_core_violation halt is FORBIDDEN unless that
+  script exits 3 THIS cycle. It exited ${audit_code} = clean. This is the same
+  hallucination that froze the paper trader on 2026-06-10 and 2026-06-12. Do NOT
+  halt. The script — newest-commit author per path; genesis AND "which files the
+  last fix touched" are BOTH irrelevant — is the only authority.
+
+  Recover and continue the cycle WITHOUT halting:
+      jq '.active=false|.reason=null|.triggered_at=null|.cycle_id=null' \\
+         state/halts.json > state/halts.json.tmp && mv state/halts.json.tmp state/halts.json
+      git add state/halts.json
+
+  (A genuinely agent-authored rail makes the audit exit 3 and this commit passes.
+  It exits ${audit_code}. Fix the audit if it is wrong — never bypass this gate.)
+
+EOF
+exit 1

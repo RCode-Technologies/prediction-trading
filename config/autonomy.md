@@ -94,8 +94,12 @@ auto-revert philosophy.
 1. **Intent gate** — `enact` refuses to *write* any § denylist path.
 2. **Write gate** — `persist` refuses to *commit* a § Protected core path under the agent identity
    (staged-diff ∩ protected core → halt).
-3. **Integrity backstop** — `boot` audits the last author of every § Protected core path →
-   `halt("protected_core_violation")`.
+3. **Integrity backstop** — `boot` runs the committed audit `skills/boot/protected-core-audit.sh`
+   (newest-commit author per path — the *only* verdict; exit 3 → `halt("protected_core_violation")`).
+4. **Anti-confabulation gate** — `.githooks/pre-commit` refuses to commit an active
+   `protected_core_violation` in `state/halts.json` unless that audit exits 3. A *narrated* halt — no
+   matching exit-3 (2026-06-10, 2026-06-12) — cannot reach the brain. Authorship *reasoning* (genesis,
+   a recalled hash, or "which files the last fix touched") is never a verdict; only the script is.
 
 **Residual gap (honest).** A single cycle could in principle stage a self-edit to `persist` that also
 disables the write gate. It is caught by the *next* boot's integrity audit, by auto-rollback, and by the
