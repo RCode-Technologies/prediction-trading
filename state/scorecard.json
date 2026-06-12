@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-11T08:11:20Z",
+  "updated_at": "2026-06-12T04:09:16Z",
   "window_days": 30,
   "exploit": {
     "resolved_n": 4,
@@ -18,12 +18,12 @@
     "clv_n": 8
   },
   "explore": {
-    "resolved_n": 2,
-    "unresolved_n": 10,
-    "brier_explore": 0.212225,
-    "brier_market_p": 0.191725,
-    "calibration_slope": null,
-    "buckets_filled": 1,
+    "resolved_n": 7,
+    "unresolved_n": 5,
+    "brier_explore": 0.089256,
+    "brier_market_p": 0.084031,
+    "calibration_slope": 0.0,
+    "buckets_filled": 2,
     "clv_mean": -0.000192,
     "clv_hit_rate": 0.384615,
     "clv_n": 13

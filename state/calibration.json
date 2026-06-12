@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-10T22:13:54Z",
+  "updated_at": "2026-06-12T04:09:16Z",
   "exploit": {
     "50-60": {
       "resolved_n": 0,
@@ -61,10 +61,10 @@
       "status": "collect"
     },
     "40-50": {
-      "resolved_n": 2,
-      "brier_explore": 0.212225,
-      "brier_market_p": 0.191725,
-      "calibration_slope": null,
+      "resolved_n": 3,
+      "brier_explore": 0.206017,
+      "brier_market_p": 0.19235,
+      "calibration_slope": 0.0,
       "status": "collect"
     },
     "50-60": {
@@ -86,6 +86,13 @@
       "brier_explore": null,
       "brier_market_p": null,
       "calibration_slope": null,
+      "status": "collect"
+    },
+    "0-10": {
+      "resolved_n": 4,
+      "brier_explore": 0.001686,
+      "brier_market_p": 0.002791,
+      "calibration_slope": 0.0,
       "status": "collect"
     }
   }
