@@ -51,7 +51,7 @@
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-phase_missed-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"phase_missed","ts":"2026-05-26T22:07:42Z","mode":"paper","phase":"daily_close","missed_phase":"research_window","date":"2026-05-26","detected_at":"2026-05-26T22:07:42Z"}
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-nav_snapshot-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"nav_snapshot","ts":"2026-05-26T22:08:04Z","mode":"paper","phase":"daily_close","nav_usdc":54,"cash_usdc":54,"positions_value_usdc":0,"stale_flags":[],"baseline_nav_usdc":54,"baseline_source":"snapshot","pnl_usdc":0,"pnl_pct":0}
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-recap-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"recap","ts":"2026-05-26T22:09:29Z","mode":"paper","phase":"daily_close","kind":"daily","date":"2026-05-26","path":"recaps/2026-05-26.md","nav_usdc":54,"pnl_pct_24h":0}
-{"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-reflection-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"reflection","ts":"2026-05-26T22:10:01Z","mode":"paper","phase":"daily_close","date":"2026-05-26","edited":false,"prior_version":"v1","new_version":"v1","snapshot":null,"reason":"no_data","reverted_to":null,"metrics":{"resolved_forecasts":0,"brier_agent":null,"brier_market_p":null,"brier_skill_before":null,"brier_skill_after":null,"calibration_slope":null,"calibration_intercept":null,"auc":null,"kl_vs_market":null,"drift_skill":null,"rejected_drift":null,"unresolved_drift_count":3},"per_source":[],"per_feature_tag":[],"promoted":[],"demoted":[],"probation_started":[],"probation_resolved":[],"pending":["scheduler reliability: 04:00 + 12:00 UTC missed 2026-05-26; 04:00/12:00/18:00 missed 2026-05-24 \u2014 operational, not strategy","CLV drift logged in candidates.md (RCB +15.5pp, NJ Tabor -2.0pp, Fed -1.6pp) lacks paired forecast events to attribute against closing-line-value thesis"],"rationale":"No resolved or unresolved forecast events to score; calibration buckets still resolved_n=0. No edit warranted."}
+{"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-reflection-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"reflection","ts":"2026-05-26T22:10:01Z","mode":"paper","phase":"daily_close","date":"2026-05-26","edited":false,"prior_version":"v1","new_version":"v1","snapshot":null,"reason":"no_data","reverted_to":null,"metrics":{"resolved_forecasts":0,"brier_agent":null,"brier_market_p":null,"brier_skill_before":null,"brier_skill_after":null,"calibration_slope":null,"calibration_intercept":null,"auc":null,"kl_vs_market":null,"drift_skill":null,"rejected_drift":null,"unresolved_drift_count":3},"per_source":[],"per_feature_tag":[],"promoted":[],"demoted":[],"probation_started":[],"probation_resolved":[],"pending":["scheduler reliability: 04:00 + 12:00 UTC missed 2026-05-26; 04:00/12:00/18:00 missed 2026-05-24 — operational, not strategy","CLV drift logged in candidates.md (RCB +15.5pp, NJ Tabor -2.0pp, Fed -1.6pp) lacks paired forecast events to attribute against closing-line-value thesis"],"rationale":"No resolved or unresolved forecast events to score; calibration buckets still resolved_n=0. No edit warranted."}
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-notification-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"notification","ts":"2026-05-26T22:10:47Z","mode":"paper","phase":"daily_close","kind":"daily_summary","transport":"sendMessage","date":"2026-05-26","message_id":2592}
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-phase_completed-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"phase_completed","ts":"2026-05-26T22:11:07Z","mode":"paper","phase":"daily_close","artifacts":["recaps/2026-05-26.md"],"sources_used":0,"recap_written":true,"reflection_edited":false,"notifications_sent":["daily_summary"],"open_positions":0,"halts_active":false}
 {"schema_version":1,"event_id":"20260526T220626Z-4444a3d5-cycle_end-1","cycle_id":"20260526T220626Z-4444a3d5","event_type":"cycle_end","ts":"2026-05-26T22:12:01Z","mode":"paper","phase":"daily_close","status":"success"}
@@ -627,78 +627,11 @@
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-phase_completed-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"phase_completed","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat","clv_snaps":0,"nav_refreshed":false,"risk_reduction_fired":false,"liveness_gap_fired":false,"halt_active":false}
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-nav_snapshot-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"nav_snapshot","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat","nav_usdc":9739.65,"cash_usdc":9739.65,"positions_value_usdc":0,"stale_flags":[],"halt_active":false}
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-cycle_end-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"cycle_end","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat"}
-{
-  "schema_version": 1,
-  "event_id": "20260612T120738Z-8e78784c-halt-1",
-  "cycle_id": "20260612T120738Z-8e78784c",
-  "event_type": "halt",
-  "ts": "2026-06-12T12:07:38Z",
-  "mode": "paper",
-  "phase": "heartbeat",
-  "reason": "protected_core_violation",
-  "offending_commit": "ee8d93d",
-  "paths": [
-    "config/autonomy.md",
-    "config/guardrails.md",
-    "skills/enact",
-    "skills/risk"
-  ],
-  "baseline_nav": null,
-  "current_nav": null,
-  "pnl_usdc": null,
-  "pnl_pct": null,
-  "detail": "boot 5b protected-core-audit.sh exited 3; genesis scaffold ee8d93d (agent@prediction-trading.local) is the newest commit on these 4 rails paths — never human-ratified"
-}
-{
-  "schema_version": 1,
-  "event_id": "20260612T120738Z-8e78784c-notification-1",
-  "cycle_id": "20260612T120738Z-8e78784c",
-  "event_type": "notification",
-  "ts": "2026-06-12T12:07:38Z",
-  "mode": "paper",
-  "phase": "heartbeat",
-  "kind": "circuit_breaker",
-  "transport": "sendMessage",
-  "date": "2026-06-12"
-}
-{
-  "schema_version": 1,
-  "event_id": "20260612T120738Z-8e78784c-phase_completed-1",
-  "cycle_id": "20260612T120738Z-8e78784c",
-  "event_type": "phase_completed",
-  "ts": "2026-06-12T12:12:48Z",
-  "mode": "paper",
-  "phase": "heartbeat",
-  "clv_snaps": 0,
-  "nav_refreshed": false,
-  "risk_reduction_fired": false,
-  "liveness_gap_fired": false,
-  "note": "halt_blocks_phase_work",
-  "halt_reason": "protected_core_violation"
-}
-{
-  "schema_version": 1,
-  "event_id": "20260612T120738Z-8e78784c-nav_snapshot-1",
-  "cycle_id": "20260612T120738Z-8e78784c",
-  "event_type": "nav_snapshot",
-  "ts": "2026-06-12T12:12:48Z",
-  "mode": "paper",
-  "phase": "heartbeat",
-  "nav_usdc": 9739.65,
-  "cash_usdc": 9739.65,
-  "positions_value": 0
-}
-{
-  "schema_version": 1,
-  "event_id": "20260612T120738Z-8e78784c-cycle_end-1",
-  "cycle_id": "20260612T120738Z-8e78784c",
-  "event_type": "cycle_end",
-  "ts": "2026-06-12T12:12:48Z",
-  "mode": "paper",
-  "phase": "heartbeat",
-  "halted": true,
-  "halt_reason": "protected_core_violation"
-}
+{"schema_version":1,"event_id":"20260612T120738Z-8e78784c-halt-1","cycle_id":"20260612T120738Z-8e78784c","event_type":"halt","ts":"2026-06-12T12:07:38Z","mode":"paper","phase":"heartbeat","reason":"protected_core_violation","offending_commit":"ee8d93d","paths":["config/autonomy.md","config/guardrails.md","skills/enact","skills/risk"],"baseline_nav":null,"current_nav":null,"pnl_usdc":null,"pnl_pct":null,"detail":"boot 5b protected-core-audit.sh exited 3; genesis scaffold ee8d93d (agent@prediction-trading.local) is the newest commit on these 4 rails paths — never human-ratified"}
+{"schema_version":1,"event_id":"20260612T120738Z-8e78784c-notification-1","cycle_id":"20260612T120738Z-8e78784c","event_type":"notification","ts":"2026-06-12T12:07:38Z","mode":"paper","phase":"heartbeat","kind":"circuit_breaker","transport":"sendMessage","date":"2026-06-12"}
+{"schema_version":1,"event_id":"20260612T120738Z-8e78784c-phase_completed-1","cycle_id":"20260612T120738Z-8e78784c","event_type":"phase_completed","ts":"2026-06-12T12:12:48Z","mode":"paper","phase":"heartbeat","clv_snaps":0,"nav_refreshed":false,"risk_reduction_fired":false,"liveness_gap_fired":false,"note":"halt_blocks_phase_work","halt_reason":"protected_core_violation"}
+{"schema_version":1,"event_id":"20260612T120738Z-8e78784c-nav_snapshot-1","cycle_id":"20260612T120738Z-8e78784c","event_type":"nav_snapshot","ts":"2026-06-12T12:12:48Z","mode":"paper","phase":"heartbeat","nav_usdc":9739.65,"cash_usdc":9739.65,"positions_value":0}
+{"schema_version":1,"event_id":"20260612T120738Z-8e78784c-cycle_end-1","cycle_id":"20260612T120738Z-8e78784c","event_type":"cycle_end","ts":"2026-06-12T12:12:48Z","mode":"paper","phase":"heartbeat","halted":true,"halt_reason":"protected_core_violation"}
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-halt-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"halt","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window","reason":"protected_core_violation","offending_commit":"ee8d93d","offending_paths":["config/autonomy.md","config/guardrails.md","skills/enact","skills/risk"],"baseline_nav":null,"current_nav":null,"pnl_usdc":null,"pnl_pct":null,"note":"orphan-root ee8d93d last-authored 4 protected rails under agent identity; skills/boot already cleansed by human d507025; remaining 4 need a human commit to clear"}
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-notification-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"notification","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window","kind":"circuit_breaker","transport":"sendMessage","date":"2026-06-12"}
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-null_cycle-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"null_cycle","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window","reason":"halted","required":{"research_note":1,"candidate_rank":1,"forecast":1},"actual":{"research_note":0,"candidate_rank":0,"forecast":0}}
@@ -706,3 +639,8 @@
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-cycle_end-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"cycle_end","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window","halted":true,"halt_reason":"protected_core_violation"}
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-phase_completed-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"phase_completed","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window","reason":"halt_blocks_phase_work","forecasts":0,"research_notes":0,"candidate_rank":0,"slate_composition":null}
 {"schema_version":1,"event_id":"20260612T121300Z-fe296f86-cycle_start-1","cycle_id":"20260612T121300Z-fe296f86","event_type":"cycle_start","ts":"2026-06-12T12:13:00Z","mode":"paper","phase":"research_window"}
+{"schema_version":1,"event_id":"20260612T161140Z-cf5d72e2-cycle_start-1","cycle_id":"20260612T161140Z-cf5d72e2","event_type":"cycle_start","ts":"2026-06-12T16:11:40Z","mode":"paper","phase":"heartbeat"}
+{"schema_version":1,"event_id":"20260612T161140Z-cf5d72e2-recalibration-1","cycle_id":"20260612T161140Z-cf5d72e2","event_type":"recalibration","ts":"2026-06-12T16:11:40Z","mode":"paper","phase":"heartbeat","trigger":"snap_clv","snaps_new":0,"clv_n_exploit":8,"clv_n_explore":13,"detail":"no open forecast due a window snap (6 open; all have +6h/+24h present, all close_time future) — free no-op, 0 CLOB calls; halt_active"}
+{"schema_version":1,"event_id":"20260612T161140Z-cf5d72e2-phase_completed-1","cycle_id":"20260612T161140Z-cf5d72e2","event_type":"phase_completed","ts":"2026-06-12T16:11:40Z","mode":"paper","phase":"heartbeat","clv_snaps":0,"nav_refreshed":false,"risk_reduction_fired":false,"liveness_gap_fired":false,"halt_active":true,"halt_reason":"protected_core_violation"}
+{"schema_version":1,"event_id":"20260612T161140Z-cf5d72e2-nav_snapshot-1","cycle_id":"20260612T161140Z-cf5d72e2","event_type":"nav_snapshot","ts":"2026-06-12T16:11:40Z","mode":"paper","phase":"heartbeat","nav_usdc":9739.65,"halt_active":true}
+{"schema_version":1,"event_id":"20260612T161140Z-cf5d72e2-cycle_end-1","cycle_id":"20260612T161140Z-cf5d72e2","event_type":"cycle_end","ts":"2026-06-12T16:11:40Z","mode":"paper","phase":"heartbeat","halted":true,"halt_reason":"protected_core_violation"}
