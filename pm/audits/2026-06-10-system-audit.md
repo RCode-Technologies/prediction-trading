@@ -93,3 +93,42 @@ external watchdog existed. Every human-resume-only halt reason shared this failu
 - State integrity: all files parse, schemas uniform, event ids unique, scorecard ↔ ledger counts
   consistent; one orphan cycle_end (typo'd id, documented in-log) and the 530f85f history rewrite
   are known, explained warts.
+
+## Addendum 2 — 2026-06-12: the confabulation recurred; 5b made a script
+
+Human-directed session (theo6890 via Claude, interactive). Trigger: "trading is still halted."
+
+**What actually happened.** The 06-10 clearance (`3a1b23a`) did NOT hold. ~8 min later the
+12:15Z heartbeat and 12:19Z research_window halted again on `protected_core_violation`, this time
+citing a *different* "genesis scaffold commit" (`2725337`) — itself a 2026-06-05 `overnight_watch`
+heartbeat that touches **none** of the four named files. Identical failure mode to the 08:12Z
+confabulation (`e89b223`), and it then re-tripped every cycle for two more days (06-10 → 06-12),
+all halted, scheduler healthy throughout (~15 cycles). Addendum 1's prose rewrite + HARD
+anti-confabulation rules were **not enough**: 5b was still an LLM-*interpreted* instruction, so the
+cycle kept narrating a violation instead of running the check.
+
+**Ground truth (verified this session against `origin/main` HEAD `c224e41`).**
+`bash skills/boot/protected-core-audit.sh` → `PROTECTED_CORE_VIOLATIONS:[ ]`, exit 0. All nine
+protected paths last-authored by `mail@rcode.tech`. 5c reconciles
+(`10000 − 1.50 − 225.70 + 243.13 − 276.28 = 9739.65 == cash`, 0 positions). No violation existed.
+
+**Fix applied (human-authored, this session).**
+| Area | Change |
+|---|---|
+| `skills/boot/protected-core-audit.sh` | **New committed script** — the deterministic check is now executable, not prose. Emits `PROTECTED_CORE_VIOLATIONS:[…]` + exit 0/3. `cd`s to repo root; newest-commit author per path; genesis explicitly irrelevant. |
+| `skills/boot` 5b | Rewritten to `bash skills/boot/protected-core-audit.sh` and act SOLELY on its exit code (0=pass, 3=halt with the hash IT printed, other=inconclusive→continue). HARD: no `protected_core_violation` halt may be written without a matching exit-3 *this cycle*. |
+| `state/halts.json` | Cleared (the confabulation). |
+
+**Lesson (now demonstrated twice).** Addendum 1 already said "any LLM-executed gate that can halt
+capital ops must emit a mechanical verdict, not invite narrative judgement" — but the fix stopped at
+*better prose*. Prose was re-narrated within minutes. The durable fix is to move the verdict OUT of
+the model's discretion into a committed script whose exit code boot obeys. Apply this pattern to any
+other halt gate that an LLM evaluates from prose.
+
+## Still open for theo (2026-06-12)
+
+1. **Rogue branch `claude/serene-brown-or8nac`** exists on origin (1 commit, `91f9696`, a 06-11
+   halted heartbeat) — violates the main-only HARD rule. Recoverable by SHA. Delete with
+   `git push origin --delete claude/serene-brown-or8nac` once you've confirmed nothing unique is on it.
+2. Watch the next *unattended* cloud cycle boot clean (5b exit 0, no halt) to confirm the fix holds
+   without a human in the loop.

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "active": true,
-  "reason": "protected_core_violation",
-  "triggered_at": "2026-06-10T12:15:47Z",
-  "cycle_id": "20260610T121547Z-70a84f01"
+  "active": false,
+  "reason": null,
+  "triggered_at": null,
+  "cycle_id": null
 }

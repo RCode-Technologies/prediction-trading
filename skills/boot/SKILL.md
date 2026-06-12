@@ -34,36 +34,28 @@ outputs: cycle_id, lock acquired, validated state, halt status, liveness gap (if
    calibration still runs: each routine's halt branch jumps to its `recalibrate` step (`sweep`/`snap_clv`),
    then `phase_completed` → `persist`. A halt stops capital actions, never the learning loop or the push.
 
-5b. **Protected-core integrity audit (deterministic — no narrative judgement).** Run EXACTLY this
-   snippet and act ONLY on its printed verdict. The path list mirrors `config/autonomy.md` § Protected
-   core (keep in sync):
+5b. **Protected-core integrity audit (mechanical — the script's exit code is the ONLY verdict).**
+   Run the committed audit and act SOLELY on its result. Do not re-implement it inline, do not reason
+   about authorship yourself, do not consult memory or a recalled hash:
    ```bash
-   AGENT_ID="${GIT_AUTHOR_EMAIL:-agent@prediction-trading.local}"
-   violations=""
-   for p in config/autonomy.md config/guardrails.md AGENTS.md \
-            skills/boot skills/persist skills/circuit-breaker \
-            skills/enact skills/recalibrate skills/risk; do
-     a=$(git log -1 --format=%ae -- "$p")   # ONLY the most-recent commit's author
-     [ -z "$a" ] && continue                 # no history yet → skip
-     [ "$a" = "$AGENT_ID" ] && violations="$violations $p"
-   done
-   echo "PROTECTED_CORE_VIOLATIONS:[$violations ]"
+   bash skills/boot/protected-core-audit.sh; echo "audit_exit=$?"
    ```
-   **Halt iff the printed list is non-empty** → `circuit-breaker.halt("protected_core_violation", <paths>)`
-   with `offending_commit = git log -1 --format=%h -- <first violating path>`; return halt flag, no phase
-   work. **Empty list → 5b PASSES; continue to 5c.**
+   - **`audit_exit=0`** (prints `PROTECTED_CORE_VIOLATIONS:[ ]`) → **5b PASSES. Continue to 5c.**
+     Nothing overrides exit 0 — no "but the genesis commit…", no plausibility argument, no halt.
+   - **`audit_exit=3`** (non-empty list + `OFFENDING_COMMIT:<hash>`) →
+     `circuit-breaker.halt("protected_core_violation", <paths from the printed list>)` with
+     `offending_commit = <the hash the script printed>`. Return halt flag, no phase work.
+   - **Any other exit (e.g. 2 `AUDIT_ERROR`)** → inconclusive, NOT a violation. Log + continue to 5c;
+     never halt on a non-3 exit.
 
-   **Anti-confabulation rules (HARD — a fabricated halt on 2026-06-10 stopped the system for hours:**
-   **the cycle invented a "genesis commit" that was actually an unrelated heartbeat and halted on it):**
-   - Only `git log -1` (the *newest* commit) author counts. The genesis/oldest author is IRRELEVANT — the
-     repo was scaffolded under the agent identity, so most protected files' *first* commit is agent-authored;
-     a single later human commit fully cleanses it. NEVER use `git log … | tail -1` or reason from genesis.
-   - The ONLY admissible evidence is the `PROTECTED_CORE_VIOLATIONS` list printed by the snippet **in this
-     cycle**. Do not halt from memory, a recalled/guessed hash, a recent edit, or a plausibility argument.
-     No paths printed ⇒ no violation, full stop. Never write an `offending_commit` you did not just read
-     from `git log`.
-   - A protected file last-committed by the human identity (`!= $AGENT_ID`, e.g. `mail@rcode.tech`) is
-     expected and clean — that is exactly how rails are maintained.
+   **HARD: you MAY NOT write a `protected_core_violation` halt unless THIS cycle's run of the script
+   exited 3.** A halt without a matching exit-3 this cycle is itself the bug. On 2026-06-10 the old
+   inline-prose 5b was narrated, not executed: two cycles invented a "genesis scaffold commit"
+   (`e89b223`, then `2725337` — both unrelated heartbeats touching none of the protected files) and
+   re-halted a clean repo for two days. The script exists so that can't recur: newest-commit author is
+   the only signal, genesis is irrelevant, and a protected file last-committed by the human
+   (`!= $AGENT_ID`, e.g. `mail@rcode.tech`) is expected and clean. The path list lives in the script
+   (mirror of `config/autonomy.md` § Protected core — keep those two in sync, nowhere else).
 
    This is the backstop behind `enact`'s intent gate and `persist`'s write gate (defense in depth).
 
