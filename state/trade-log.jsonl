@@ -627,3 +627,75 @@
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-phase_completed-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"phase_completed","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat","clv_snaps":0,"nav_refreshed":false,"risk_reduction_fired":false,"liveness_gap_fired":false,"halt_active":false}
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-nav_snapshot-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"nav_snapshot","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat","nav_usdc":9739.65,"cash_usdc":9739.65,"positions_value_usdc":0,"stale_flags":[],"halt_active":false}
 {"schema_version":1,"event_id":"20260612T111642Z-a4262edc-cycle_end-1","cycle_id":"20260612T111642Z-a4262edc","event_type":"cycle_end","ts":"2026-06-12T11:16:42Z","mode":"paper","phase":"heartbeat"}
+{
+  "schema_version": 1,
+  "event_id": "20260612T120738Z-8e78784c-halt-1",
+  "cycle_id": "20260612T120738Z-8e78784c",
+  "event_type": "halt",
+  "ts": "2026-06-12T12:07:38Z",
+  "mode": "paper",
+  "phase": "heartbeat",
+  "reason": "protected_core_violation",
+  "offending_commit": "ee8d93d",
+  "paths": [
+    "config/autonomy.md",
+    "config/guardrails.md",
+    "skills/enact",
+    "skills/risk"
+  ],
+  "baseline_nav": null,
+  "current_nav": null,
+  "pnl_usdc": null,
+  "pnl_pct": null,
+  "detail": "boot 5b protected-core-audit.sh exited 3; genesis scaffold ee8d93d (agent@prediction-trading.local) is the newest commit on these 4 rails paths — never human-ratified"
+}
+{
+  "schema_version": 1,
+  "event_id": "20260612T120738Z-8e78784c-notification-1",
+  "cycle_id": "20260612T120738Z-8e78784c",
+  "event_type": "notification",
+  "ts": "2026-06-12T12:07:38Z",
+  "mode": "paper",
+  "phase": "heartbeat",
+  "kind": "circuit_breaker",
+  "transport": "sendMessage",
+  "date": "2026-06-12"
+}
+{
+  "schema_version": 1,
+  "event_id": "20260612T120738Z-8e78784c-phase_completed-1",
+  "cycle_id": "20260612T120738Z-8e78784c",
+  "event_type": "phase_completed",
+  "ts": "2026-06-12T12:12:48Z",
+  "mode": "paper",
+  "phase": "heartbeat",
+  "clv_snaps": 0,
+  "nav_refreshed": false,
+  "risk_reduction_fired": false,
+  "liveness_gap_fired": false,
+  "note": "halt_blocks_phase_work",
+  "halt_reason": "protected_core_violation"
+}
+{
+  "schema_version": 1,
+  "event_id": "20260612T120738Z-8e78784c-nav_snapshot-1",
+  "cycle_id": "20260612T120738Z-8e78784c",
+  "event_type": "nav_snapshot",
+  "ts": "2026-06-12T12:12:48Z",
+  "mode": "paper",
+  "phase": "heartbeat",
+  "nav_usdc": 9739.65,
+  "cash_usdc": 9739.65,
+  "positions_value": 0
+}
+{
+  "schema_version": 1,
+  "event_id": "20260612T120738Z-8e78784c-cycle_end-1",
+  "cycle_id": "20260612T120738Z-8e78784c",
+  "event_type": "cycle_end",
+  "ts": "2026-06-12T12:12:48Z",
+  "mode": "paper",
+  "phase": "heartbeat",
+  "halted": true,
+  "halt_reason": "protected_core_violation"
+}
