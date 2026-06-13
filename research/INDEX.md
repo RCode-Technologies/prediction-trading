@@ -9,6 +9,11 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-06-13
+
+| 2026-06-13T12:20Z | crypto-price-thresholds | Current BTC/ETH spot vs near-term price-threshold markets (Jun 14–18) | 2506684, 2492010, 2506608, 2462645 |
+| 2026-06-13T12:25Z | ai-model-leadership | Best AI model / best coding model at end-June 2026 (DeepSeek vs Anthropic) | 631145, 2364238 |
+
 ## 2026-05-29
 
 | 2026-05-29T12:10Z | iran-diplomacy-kharg | US-Iran meeting-by-Jun7 odds vs late-May negotiation thaw, plus Kharg Island control status by May 31 | 2354045, 1708109 |
