@@ -9,6 +9,11 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-06-15
+
+| 2026-06-15T12:18Z | us-iran-deal | Interim US-Iran deal near, but Mojtaba Khamenei as signatory by Jul 31 stays narrow (explore-only; Iran-loss shape) | 2512442 |
+| 2026-06-15T12:18Z | btc-price-range | BTC ~$65.7k spot vs precise $70-72k settlement on Jun 17 (~+7% + narrow band) | 2492010 |
+
 ## 2026-06-13
 
 | 2026-06-13T12:20Z | crypto-price-thresholds | Current BTC/ETH spot vs near-term price-threshold markets (Jun 14–18) | 2506684, 2492010, 2506608, 2462645 |
