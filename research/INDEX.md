@@ -9,6 +9,11 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-06-16
+
+| 2026-06-16T12:20Z | cuba-diaz-canel-out-jun30 | Díaz-Canel firmly in power (US sanctions 06-04, reforms 06-12); YES ~0.09 rich vs <2% base rate (explore; NO-side edge) | 1106634 |
+| 2026-06-16T12:22Z | wti-crude-95-june | WTI ~$80 front month; $95 = ~+18% in ~2wk, no active shock; YES ~0.065 slightly rich (explore; geopolitical tail) | 2492328 |
+
 ## 2026-06-15
 
 | 2026-06-15T12:18Z | us-iran-deal | Interim US-Iran deal near, but Mojtaba Khamenei as signatory by Jul 31 stays narrow (explore-only; Iran-loss shape) | 2512442 |
