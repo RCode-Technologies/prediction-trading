@@ -9,6 +9,12 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-06-17
+
+| 2026-06-17T12:15Z | crypto-price-screen | Near-dated BTC/ETH/SOL/XRP strike markets vs spot ($64.8k/$1.76k/$72/$1.19); deep-OTM lottery tickets ~fairly priced (explore; structural barrier model) | 2410579, 2506625, 2492166, 2506791 |
+| 2026-06-17T12:16Z | alibaba-ai-leaderboard-june | Alibaba (Qwen) #1 on LMArena by 6/30 priced ~0.1%; mild lean above, low confidence, no fresh leaderboard (explore) | 631142 |
+| 2026-06-17T12:17Z | iran-ofac-sanctions-june | US eases Iran OFAC sanctions by 6/30 priced ~61.5% — active deal narrative (per 06-15 note); deferred near market, no fresh news (explore; top trade-window target) | 2298007 |
+
 ## 2026-06-16
 
 | 2026-06-16T12:20Z | cuba-diaz-canel-out-jun30 | Díaz-Canel firmly in power (US sanctions 06-04, reforms 06-12); YES ~0.09 rich vs <2% base rate (explore; NO-side edge) | 1106634 |
