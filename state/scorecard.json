@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-18T08:04:28Z",
+  "updated_at": "2026-06-18T12:09:05Z",
   "window_days": 30,
   "exploit": {
     "resolved_n": 4,
@@ -24,23 +24,23 @@
     "brier_market_p": 0.049091,
     "calibration_slope": 0.0,
     "buckets_filled": 2,
-    "clv_mean": -0.00099,
-    "clv_hit_rate": 0.35,
-    "clv_n": 100
+    "clv_mean": -0.00103,
+    "clv_hit_rate": 0.346535,
+    "clv_n": 101
   },
   "by_provider": [],
   "by_feature_tag": [],
   "by_edge_source": [
     {
       "edge_source": "base_rate",
-      "clv_mean": 0.001219,
-      "clv_hit_rate": 0.46875,
-      "clv_n": 32
+      "clv_mean": 0.00103,
+      "clv_hit_rate": 0.454545,
+      "clv_n": 33
     },
     {
       "edge_source": "news_latency",
       "clv_mean": -0.0225,
-      "clv_hit_rate": 0.0,
+      "clv_hit_rate": 0,
       "clv_n": 2
     },
     {
@@ -52,7 +52,7 @@
     {
       "edge_source": "sentiment",
       "clv_mean": 0.05,
-      "clv_hit_rate": 1.0,
+      "clv_hit_rate": 1,
       "clv_n": 1
     },
     {
