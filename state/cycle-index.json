@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "last_cycle_id": "20260617T220454Z-bff6cc2a",
-  "last_started_at": "2026-06-17T22:04:54Z",
-  "last_completed_at": "2026-06-17T22:04:54Z",
+  "last_cycle_id": "20260618T040304Z-92059fb2",
+  "last_started_at": "2026-06-18T04:03:04Z",
+  "last_completed_at": "2026-06-18T04:03:04Z",
   "nav_snapshots": [
     {
       "ts": "2026-05-24T22:06:13Z",
@@ -693,9 +693,14 @@
       "ts": "2026-06-17T22:04:54Z",
       "nav_usdc": 9739.65,
       "cycle_id": "20260617T220454Z-bff6cc2a"
+    },
+    {
+      "ts": "2026-06-18T04:03:04Z",
+      "nav_usdc": 9739.65,
+      "cycle_id": "20260618T040304Z-92059fb2"
     }
   ],
-  "last_phase": "daily_close",
+  "last_phase": "overnight_watch",
   "recent": [
     {
       "cycle_id": "20260617T220454Z-bff6cc2a",

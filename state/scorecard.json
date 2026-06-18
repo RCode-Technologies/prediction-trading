@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-17T22:04:54Z",
+  "updated_at": "2026-06-18T04:03:04Z",
   "window_days": 30,
   "exploit": {
     "resolved_n": 4,
@@ -24,9 +24,9 @@
     "brier_market_p": 0.049091,
     "calibration_slope": 0.0,
     "buckets_filled": 2,
-    "clv_mean": -0.000973,
-    "clv_hit_rate": 0.333333,
-    "clv_n": 93
+    "clv_mean": -0.001515,
+    "clv_hit_rate": 0.350515,
+    "clv_n": 97
   },
   "by_provider": [],
   "by_feature_tag": [],
@@ -45,15 +45,15 @@
     },
     {
       "edge_source": "none",
-      "clv_mean": -0.014775,
-      "clv_hit_rate": 0.3,
-      "clv_n": 40
+      "clv_mean": -0.0155,
+      "clv_hit_rate": 0.309524,
+      "clv_n": 42
     },
     {
       "edge_source": "structural",
-      "clv_mean": -0.0036,
-      "clv_hit_rate": 0.233333,
-      "clv_n": 30
+      "clv_mean": -0.003266,
+      "clv_hit_rate": 0.28125,
+      "clv_n": 32
     }
   ]
 }
