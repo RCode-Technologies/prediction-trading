@@ -9,6 +9,10 @@ newest day on top. The agent maintains this file as part of
 | Date | Slug | Angle | Markets |
 |------|------|-------|---------|
 
+## 2026-06-18
+
+| 2026-06-18T12:15Z | msi-2026-region | LPL win MSI 2026 priced 0.325; all-time region base rate ~0.50 but recent form all-LCK + Korea host + #1 seed + sharp 33% consensus → no edge after spread (explore; base_rate) | 1494696 |
+
 ## 2026-06-17
 
 | 2026-06-17T12:15Z | crypto-price-screen | Near-dated BTC/ETH/SOL/XRP strike markets vs spot ($64.8k/$1.76k/$72/$1.19); deep-OTM lottery tickets ~fairly priced (explore; structural barrier model) | 2410579, 2506625, 2492166, 2506791 |
