@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-06-18T16:08:22.624870Z",
+  "updated_at": "2026-06-18T18:06:42Z",
   "window_days": 30,
   "exploit": {
     "resolved_n": 4,
@@ -19,7 +19,7 @@
   },
   "explore": {
     "resolved_n": 12,
-    "unresolved_n": 58,
+    "unresolved_n": 63,
     "brier_explore": 0.052289,
     "brier_market_p": 0.049091,
     "calibration_slope": 0.0,
